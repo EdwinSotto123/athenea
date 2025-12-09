@@ -261,6 +261,14 @@ const Calculator: React.FC<CalculatorProps> = ({ onCommand }) => {
         <span className={`text-6xl font-light text-white tracking-tight break-all transition-opacity duration-300 ${showManual ? 'opacity-10 blur-sm' : 'opacity-100'}`}>
           {display}
         </span>
+
+        {/* Help Hint */}
+        {!showManual && (
+          <div className="absolute top-0 left-0 p-4 text-[10px] text-gray-500 font-mono select-none tracking-widest uppercase opacity-60">
+            Presiona %= para ver comandos
+          </div>
+        )}
+
         {showManual && (
           <div className="absolute bottom-6 right-6 text-right">
             <p className="text-athena-500 font-mono text-sm">ATHENA_OS v1.0</p>
