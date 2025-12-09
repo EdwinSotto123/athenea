@@ -20,11 +20,11 @@ Athena utiliza una arquitectura de **Agente Híbrido** siguiendo el estándar **
 
 ### 1. El Cerebro (LlmAgent)
 *   **Tecnología:** Google Gemini 2.5 Flash Lite + `@iqai/adk`.
-*   **Función:** Planificación estratégica y soporte emocional.
+*   **Función:** Planificación estratégica y **Análisis Forense Multimodal**.
 *   **Capacidades:**
-    *   Evalúa el nivel de riesgo (1-10) mediante conversación natural.
-    *   Genera planes de escape tácticos paso a paso (JSON estructurado).
-    *   Calcula presupuestos de "Libertad" personalizados.
+    *   **Evaluación de Riesgo:** Monitoriza la conversación para detectar escalada de peligro.
+    *   **Perito Forense IA:** Analiza fotos de lesiones, grabaciones de audio y video en tiempo real para detectar patrones de violencia y categorizarlos legalmente (física, psicológica, económica).
+    *   Genera metadatos enriquecidos para la evidencia antes de encriptarla.
 
 ### 2. El Músculo (Core ADK Pattern)
 *   **Tecnología:** `AthenaAgent` (Clase TypeScript) + Fraxtal L2 Blockchain.
@@ -32,8 +32,7 @@ Athena utiliza una arquitectura de **Agente Híbrido** siguiendo el estándar **
 *   **Patrón:** *Percepción → Razonamiento → Acción*.
     *   **Percepción:** Monitorea saldos en tiempo real y estado de la red.
     *   **Acción:**
-        *   `createAnonymousCase()`: Genera identidades descentralizadas.
-        *   `secureEvidence()`: Hashea evidencia y la ancla en la blockchain.
+        *   `secureEvidence()`: Recibe la evidencia analizada por la IA, genera un **Hash Criptográfico SHA-256**, sube el archivo a IPFS (almacenamiento descentralizado) y **registra el hash en el Smart Contract** de Fraxtal. Esto crea una "cadena de custodia" digital inmutable, válida en cortes judiciales.
         *   `triggerSOS()`: Ejecuta contratos inteligentes de liquidación de emergencia.
 
 ---
@@ -57,5 +56,5 @@ Athena utiliza una arquitectura de **Agente Híbrido** siguiendo el estándar **
 *   **Fase 3:** Disfraz dinámico (la app cambia de apariencia según el código de acceso: Calculadora, Recetas, Period Tracker).
 
 ---
-**Desarrollado para el Hackathon OQAI x Google Cloud.**
+**Desarrollado para el Hackathon OQAI.**
 *Tecnología que salva vidas.*
