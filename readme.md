@@ -1,60 +1,172 @@
-# Athena (Liberta Agent) - Resumen Ejecutivo
+# 💜 Athena - Freedom Protocol
 
-## 🎯 Visión General
-**Athena** es un agente de IA autónomo diseñado para empoderar a mujeres atrapadas en situaciones de violencia doméstica o abuso financiero. Actúa como un *Planificador de Escape* encubierto de grado militar, proporcionando libertad financiera invisible y recolección de evidencia legalmente válida, todo oculto tras la interfaz de una calculadora o aplicación de estilo de vida inofensiva.
+> **AI Agent that protects domestic violence victims through financial sovereignty and immutable evidence.**
 
-### 🛑 El Problema
-El **99%** de las víctimas de violencia doméstica sufren abuso financiero. Sin dinero propio ni evidencia inmutable (que a menudo es borrada por los abusadores de los teléfonos), escapar es logísticamente imposible. Las víctimas necesitan una forma de **ahorrar dinero** y **documentar abusos** sin dejar rastro digital en sus estados de cuenta bancarios tradicionales o galerías de fotos.
-
-### 💡 La Solución
-Una aplicación móvil descentralizada (dApp) impulsada por IA que ofrece:
-1.  **Bóveda de Libertad:** Una cuenta de ahorros criptográfica secreta (en stablecoins) que genera intereses y es indetectable por el abusador.
-2.  **Locker Inmutable:** Almacenamiento de evidencia (fotos/audio/texto) en IPFS asegurado por blockchain, creando un registro legal permanente fuera del alcance del abusador.
-3.  **Botón de Pánico (SOS):** Un protocolo de emergencia de un solo toque que liquida todos los activos y los transfiere a un contacto de confianza instantáneamente.
+[![IQAI Agent](https://img.shields.io/badge/IQAI-Agent%20Tokenized-purple)](https://app.iqai.com/agents/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4)
+[![Fraxtal](https://img.shields.io/badge/Network-Fraxtal%20L2-blue)](https://frax.com)
+[![ADK-TS](https://img.shields.io/badge/Framework-ADK--TS-green)](https://github.com/iqai/adk)
 
 ---
 
-## 🏗️ Arquitectura Técnica de Agentes
+## 🌐 Live Links
 
-Athena utiliza una arquitectura de **Agente Híbrido** siguiendo el estándar **OQAI ADK-TS**:
-
-### 1. El Cerebro (LlmAgent)
-*   **Tecnología:** Google Gemini 2.5 Flash Lite + `@iqai/adk`.
-*   **Función:** Planificación estratégica y **Análisis Forense Multimodal**.
-*   **Capacidades:**
-    *   **Evaluación de Riesgo:** Monitoriza la conversación para detectar escalada de peligro.
-    *   **Perito Forense IA:** Analiza fotos de lesiones, grabaciones de audio y video en tiempo real para detectar patrones de violencia y categorizarlos legalmente (física, psicológica, económica).
-    *   Genera metadatos enriquecidos para la evidencia antes de encriptarla.
-
-### 2. El Músculo (Core ADK Pattern)
-*   **Tecnología:** `AthenaAgent` (Clase TypeScript) + Fraxtal L2 Blockchain.
-*   **Función:** Ejecución segura, determinista y financiera.
-*   **Patrón:** *Percepción → Razonamiento → Acción*.
-    *   **Percepción:** Monitorea saldos en tiempo real y estado de la red.
-    *   **Acción:**
-        *   `secureEvidence()`: Recibe la evidencia analizada por la IA, genera un **Hash Criptográfico SHA-256**, sube el archivo a IPFS (almacenamiento descentralizado) y **registra el hash en el Smart Contract** de Fraxtal. Esto crea una "cadena de custodia" digital inmutable, válida en cortes judiciales.
-        *   `triggerSOS()`: Ejecuta contratos inteligentes de liquidación de emergencia.
+| Resource | Link |
+|----------|------|
+| 🚀 **App (Demo)** | [athenea-nine.vercel.app](https://athenea-nine.vercel.app/) |
+| 🤖 **Agent Dashboard** | [IQAI ATP Dashboard](https://app.iqai.com/agents/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4) |
+| 💜 **$ATHENA Token** | `0xee30b1d751c32cfed78826ed6377927d7ff85892` |
+| 📊 **Agent Contract** | `0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4` |
+| 💧 **Liquidity Pool** | `0x805c15c2d7e13c32bde69ef3982bc3f1e835ba24` |
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 🎯 The Problem
 
-| Capa | Tecnologías | Propósito |
-| :--- | :--- | :--- |
-| **Frontend** | React, Vite, Tailwind CSS, Lucide | UI "Stealth" rápida y reactiva (Mobile-first). |
-| **IA / Agente** | Google Vertex AI, Gemini 2.5, **IQAI ADK-TS** | Razonamiento, planificación y empatía. |
-| **Blockchain** | **Fraxtal L2** (OP Stack), Ethers.js | Transacciones rápidas, baratas y privadas. |
-| **Smart Contracts** | Solidity (`AthenaPool.sol`) | Lógica de pool de donaciones y seguridad de fondos. |
-| **Almacenamiento** | Firebase (Auth/Firestore) + **IPFS (Pinata)** | Persistencia de usuario + Evidencia inmutable. |
+**99% of domestic violence victims suffer financial abuse.** Without their own money or immutable evidence (often deleted by abusers), escape is logistically impossible.
+
+## 💡 The Solution
+
+A stealth AI agent disguised as a calculator that provides:
+
+| Feature | Description |
+|---------|-------------|
+| 🔐 **Freedom Vault** | Secret crypto savings account (frxETH on Fraxtal) |
+| 📁 **Evidence Locker** | Photos/audio/text stored on IPFS with blockchain hashes |
+| 🆘 **Panic Button (SOS)** | One-tap emergency liquidation to safe contact |
+| 🤖 **AI Companion** | Empathetic planning assistant powered by Gemini |
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    ATHENA AGENT (ADK-TS)                │
+├──────────────┬──────────────┬───────────────────────────┤
+│   🧠 Brain   │   💪 Muscle  │      🔗 Blockchain        │
+│  Gemini 2.5  │ AthenaAgent  │    Fraxtal L2 Testnet     │
+│  Flash Lite  │   TypeScript │    Custodial Wallets      │
+└──────────────┴──────────────┴───────────────────────────┘
+        │               │                   │
+        ▼               ▼                   ▼
+   Risk Analysis   Evidence Hash      SOS Transfer
+   Escape Planning IPFS Storage      ATP Logs (IQAI)
+```
+
+### Core Components
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Agent Core | `lib/athena-agent.ts` | ADK-TS pattern implementation |
+| Blockchain SOS | `lib/blockchain-sos.ts` | Real frxETH transfers on testnet |
+| Custodial Wallets | `lib/wallet-custody.ts` | Auto-generated encrypted wallets |
+| Evidence Export | `lib/evidence-export.ts` | User-friendly certificates |
+| ATP Logs | `lib/atp-logs.ts` | IQAI dashboard humanized logs |
 
 ---
 
-## 🚀 Hoja de Ruta e Impacto
+## 🛠️ Tech Stack
 
-*   **Fase 1 (Actual):** MVP funcional con Bóveda, Locker y Planificador IA. Despliegue en Fraxtal Testnet.
-*   **Fase 2:** Integración de "Angels Pool" para donaciones anónimas de la comunidad cripto a casos específicos.
-*   **Fase 3:** Disfraz dinámico (la app cambia de apariencia según el código de acceso: Calculadora, Recetas, Period Tracker).
+| Layer | Technologies |
+|-------|-------------|
+| **Frontend** | React, Vite, Tailwind CSS, Lucide |
+| **AI** | Google Vertex AI, Gemini 2.5, IQAI ADK-TS |
+| **Blockchain** | Fraxtal L2 (Testnet), Ethers.js |
+| **Storage** | Firebase (Auth/Firestore), IPFS (Pinata) |
+| **Agent Platform** | IQAI Agent Tokenization Platform |
 
 ---
-**Desarrollado para el Hackathon OQAI.**
-*Tecnología que salva vidas.*
+
+## 🚀 Quick Start
+
+```bash
+# Clone
+git clone https://github.com/your-repo/athenea.git
+cd athenea
+
+# Install
+npm install
+
+# Configure (copy and edit)
+cp .env.local.example .env.local
+# Add your API keys (see .env.firebase for Firebase config)
+
+# Run
+npm run dev
+```
+
+### Required Environment Variables
+
+```env
+# Firebase (see .env.firebase for values)
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+
+# Gemini AI
+VITE_GEMINI_API_KEY=your-gemini-api-key
+
+# IPFS (Pinata)
+VITE_PINATA_JWT=your-pinata-jwt
+
+# Wallet Encryption
+VITE_WALLET_ENCRYPTION_KEY=your-secret-key
+
+# IQAI ATP (for agent logs)
+VITE_IQAI_API_KEY=your-iqai-api-key
+```
+
+---
+
+## 🔐 Security Features
+
+| Feature | Implementation |
+|---------|---------------|
+| **Wallet Custody** | Auto-generated on registration, AES encrypted in Firestore |
+| **Evidence Hashing** | SHA-256 + IPFS CID verification |
+| **Stealth Mode** | Calculator disguise, quick escape button |
+| **SOS Protocol** | Real blockchain transfer to safe destination |
+
+---
+
+## 📊 IQAI ATP Integration
+
+Athena is a **tokenized agent** on the IQAI platform. Every significant action generates an on-chain log:
+
+```
+💜 ¡Luna AB. ha iniciado su camino hacia la libertad!
+🔐 Aurora CD. aseguró evidencia (FOTO) en blockchain
+✨ ¡Esperanza EF. tiene su Freedom Goal! Meta: $1,100
+🆘 EMERGENCIA: Valentía GH. activó el protocolo SOS
+```
+
+**View logs:** [IQAI Dashboard](https://app.iqai.com/agents/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4/logs)
+
+---
+
+## 🎯 Roadmap
+
+- [x] MVP with Vault, Locker, AI Planner
+- [x] Custodial wallet system
+- [x] IQAI ATP integration
+- [x] Real blockchain SOS on testnet
+- [ ] Angels Pool for anonymous donations
+- [ ] Dynamic disguise (Calculator, Recipes, Period Tracker)
+- [ ] Mainnet deployment
+
+---
+
+## 💜 Impact
+
+> *Technology that saves lives.*
+
+Athena empowers victims with:
+- **Financial invisibility** from abusers
+- **Legally valid evidence** stored forever
+- **One-tap escape** when danger escalates
+
+---
+
+**Built with 💜 for IQAI Hackathon**
+
+*Protecting those who need it most.*
