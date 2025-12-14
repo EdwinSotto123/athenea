@@ -29,7 +29,7 @@ export interface EvidenceItem {
 
 export interface EscapePlan {
   isReady: boolean;
-  caseId?: string; // Unique case ID for pool donations (e.g., ATHENA-1702095267-X8K9)
+  caseId?: string; // Unique case ID for pool donations
   poolContractAddress?: string; // Pool contract address for donations
   freedomGoal: {
     targetAmount: number;
@@ -40,21 +40,31 @@ export interface EscapePlan {
       supplies: number;
       shelter: number;
       legal: number;
+      medical?: number;
+      childCare?: number;
     };
   };
   strategy: {
-    step1: string;
-    step2: string;
-    step3: string;
+    step1: string; // IMMEDIATE SAFETY
+    step2: string; // DOCUMENTATION
+    step3: string; // LEGAL PREPARATION
+    step4?: string; // FINANCIAL SECURITY
+    step5?: string; // SUPPORT NETWORK
+    step6?: string; // ESCAPE PLAN
+    step7?: string; // POST-ESCAPE
   };
   riskLevel: number; // 1-10
   destination: string;
+  hasChildren?: boolean;
   emergencyContact?: {
     name: string;
     contactInfo: string;
     relationship: string;
     withdrawalMethod?: 'WALLET' | 'PHONE' | 'CASH_CODE';
   };
+  legalResources?: string[];
+  documentationChecklist?: string[];
+  safetyTips?: string[];
   nextSteps?: string[];
 }
 

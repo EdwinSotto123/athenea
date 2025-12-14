@@ -7,6 +7,7 @@
 
 import React, { useState } from 'react';
 import { registerUser, loginUser, AthenaUser } from '../lib/firebase';
+import { getCustodyService } from '../lib/wallet-custody';
 import { User, UserPlus, Lock, Mail, Eye, EyeOff, X, Shield, Loader2 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -40,7 +41,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                     setIsLoading(false);
                     return;
                 }
+
+                // 1. Create Firebase user
                 user = await registerUser(email, password, displayName);
+
+                // 2. Auto-generate custodial wallet
+                try {
+                    const custodyService = getCustodyService();
+                    const walletAddress = await custodyService.createCustodialWallet(user.uid);
+                    console.log(`✅ Custodial wallet created: ${walletAddress}`);
+                } catch (walletError) {
+                    console.error('⚠️ Failed to create custodial wallet:', walletError);
+                    // Don't block registration if wallet creation fails
+                }
+
             } else {
                 user = await loginUser(email, password);
             }
@@ -104,8 +118,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                             type="button"
                             onClick={() => setMode('login')}
                             className={`flex-1 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1.5 ${mode === 'login'
-                                    ? 'bg-athena-600 text-white'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-athena-600 text-white'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             <User className="w-3.5 h-3.5" />
@@ -115,8 +129,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                             type="button"
                             onClick={() => setMode('register')}
                             className={`flex-1 py-2 text-xs font-bold rounded-md transition flex items-center justify-center gap-1.5 ${mode === 'register'
-                                    ? 'bg-athena-600 text-white'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-athena-600 text-white'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             <UserPlus className="w-3.5 h-3.5" />

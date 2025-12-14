@@ -12,6 +12,7 @@
     "@google-cloud/vertexai": "^1.10.0",
     "@google/genai": "^1.32.0",
     "@iqai/adk": "^0.5.7",
+    "crypto-js": "^4.2.0",
     "ethers": "^6.16.0",
     "firebase": "^12.6.0",
     "lucide-react": "^0.556.0",
@@ -19,6 +20,7 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "dotenv": "^17.2.3",

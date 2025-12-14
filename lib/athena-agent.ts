@@ -292,26 +292,51 @@ export class AthenaAgent {
     }
 
     /**
-     * Execute SOS Protocol
-     * Liquidates all positions and transfers to safe contact
+     * Execute SOS Protocol - REAL BLOCKCHAIN VERSION
+     * Uses custodial wallet to transfer funds on Fraxtal Testnet
      */
     async triggerSOS(safeContactAddress: string): Promise<SOSResult> {
-        console.log('[AthenaAgent] ⚠️ SOS PROTOCOL INITIATED');
+        console.log('[AthenaAgent] ⚠️ SOS PROTOCOL INITIATED - BLOCKCHAIN MODE');
 
         // Update case status
         if (this.state.case) {
             this.state.case.status = 'EVACUATED';
         }
 
-        // Execute blockchain SOS
-        const result = await this.fraxService.triggerSOS(safeContactAddress);
+        try {
+            // Use the new BlockchainSOSService for REAL transactions
+            const { getBlockchainSOSService } = await import('./blockchain-sos');
+            const sosService = getBlockchainSOSService();
 
-        // Clear local state after successful evacuation
-        if (result.success) {
-            this.clearLocalState();
+            const result = await sosService.executeSOS(safeContactAddress);
+
+            // Clear local state after successful evacuation
+            if (result.success) {
+                this.clearLocalState();
+            }
+
+            return {
+                success: result.success,
+                liquidatedAmount: 0, // No sFRAX liquidation, just native token transfer
+                transferredAmount: result.transferredAmount,
+                destinationAddress: result.destinationAddress,
+                txHashes: result.txHashes,
+                logs: result.logs
+            };
+
+        } catch (error: any) {
+            console.error('[AthenaAgent] SOS Error:', error);
+
+            // Fallback to fraxService if BlockchainSOS fails
+            console.log('[AthenaAgent] Falling back to fraxService...');
+            const result = await this.fraxService.triggerSOS(safeContactAddress);
+
+            if (result.success) {
+                this.clearLocalState();
+            }
+
+            return result;
         }
-
-        return result;
     }
 
     /**

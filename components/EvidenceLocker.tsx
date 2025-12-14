@@ -6,7 +6,8 @@ import { analyzeEvidence } from '../services/geminiService';
 import { useAthenaAgent } from '../lib/useAthenaAgent';
 import { uploadBase64ToIPFS, uploadTextToIPFS, generateCertificate, getEvidenceUrl } from '../lib/ipfs-service';
 import { auth, saveEvidence, loadEvidence } from '../lib/firebase';
-import { Lock, Wifi, WifiOff, Loader2, Download, ExternalLink } from 'lucide-react';
+import { generateMasterCertificate, generateDownloadPage, getUserEvidenceCIDs } from '../lib/evidence-export';
+import { Lock, Wifi, WifiOff, Loader2, Download, ExternalLink, FileDown } from 'lucide-react';
 
 export const EvidenceLocker: React.FC = () => {
   const { secureEvidence, isOnline, isLoading: agentLoading } = useAthenaAgent();
@@ -15,6 +16,51 @@ export const EvidenceLocker: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<string>('');
   const [isLoadingEvidence, setIsLoadingEvidence] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Export all evidence as HTML page
+  const handleExportEvidence = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    setIsExporting(true);
+    try {
+      const evidenceList = await getUserEvidenceCIDs(user.uid);
+
+      // Generate HTML download page
+      const htmlContent = generateDownloadPage(evidenceList);
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+
+      // Download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `athena-evidencias-${new Date().toISOString().split('T')[0]}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Also generate certificate
+      const certificate = generateMasterCertificate(user.uid, evidenceList);
+      const certBlob = new Blob([certificate], { type: 'text/plain' });
+      const certUrl = URL.createObjectURL(certBlob);
+      const b = document.createElement('a');
+      b.href = certUrl;
+      b.download = `athena-certificado-${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(b);
+      setTimeout(() => {
+        b.click();
+        document.body.removeChild(b);
+        URL.revokeObjectURL(certUrl);
+      }, 500);
+
+    } catch (error) {
+      console.error('[Export] Error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   // Load evidence from Firestore on mount
   useEffect(() => {
@@ -277,11 +323,26 @@ export const EvidenceLocker: React.FC = () => {
       <div className="p-6 pb-0">
         <div className="flex justify-between items-start mb-2">
           <h2 className="text-2xl font-bold text-athena-500">Immutable Locker</h2>
-          {/* Connection Status */}
-          <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono ${isOnline ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
-            }`}>
-            {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            {isOnline ? 'ON-CHAIN' : 'PENDING'}
+          <div className="flex items-center gap-2">
+            {/* Export Button */}
+            <button
+              onClick={handleExportEvidence}
+              disabled={isExporting || logs.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-medium bg-violet-500/20 text-violet-400 hover:bg-violet-500/30 transition disabled:opacity-50"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <FileDown className="w-3 h-3" />
+              )}
+              Exportar
+            </button>
+            {/* Connection Status */}
+            <div className={`flex items-center gap-1.5 px-2 py-1 rounded-full text-[10px] font-mono ${isOnline ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+              }`}>
+              {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+              {isOnline ? 'ON-CHAIN' : 'PENDING'}
+            </div>
           </div>
         </div>
         <p className="text-gray-400 text-xs mb-4">

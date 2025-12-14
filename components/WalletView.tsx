@@ -2,8 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { WalletState } from '../types';
 import { useAthenaAgent } from '../lib/useAthenaAgent';
-import { Loader2, RefreshCw, TrendingUp, Users, CreditCard, Settings, X, ArrowRight, Wallet, Send } from 'lucide-react';
+import { useCustodialWallet } from '../lib/useCustodialWallet';
+import { useBlockchainBalance } from '../lib/useBlockchainBalance';
+import { Loader2, RefreshCw, TrendingUp, Users, CreditCard, Settings, X, ArrowRight, Wallet, Send, Banknote } from 'lucide-react';
 import { auth, getSafeContact, SafeContactInfo } from '../lib/firebase';
+import { WithdrawalModal } from './WithdrawalModal';
 
 interface WalletViewProps {
   onOpenSettings: () => void;
@@ -12,9 +15,18 @@ interface WalletViewProps {
 export const WalletView: React.FC<WalletViewProps> = ({ onOpenSettings }) => {
   const { vaultState, isLoading, refreshVaultState, isOnline, agentState, triggerSOS } = useAthenaAgent();
 
+  // Custodial wallet hook
+  const { caseInfo, refreshCaseInfo } = useCustodialWallet();
+
+  // Blockchain balance hook (REAL balance from blockchain)
+  const { balance: blockchainBalance, loading: balanceLoading } = useBlockchainBalance(
+    caseInfo?.walletAddress || null
+  );
+
   // Modal states
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [depositPhone, setDepositPhone] = useState('');
   const [depositCode, setDepositCode] = useState('');
@@ -214,13 +226,13 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenSettings }) => {
         </button>
 
         <button
-          onClick={() => setShowSendModal(true)}
-          className="bg-orange-600 hover:bg-orange-500 text-white py-4 rounded-2xl font-bold transition flex flex-col items-center justify-center shadow-lg shadow-orange-900/20 group active:scale-95"
+          onClick={() => setShowWithdrawalModal(true)}
+          className="bg-purple-600 hover:bg-purple-500 text-white py-4 rounded-2xl font-bold transition flex flex-col items-center justify-center shadow-lg shadow-purple-900/20 group active:scale-95"
         >
-          <div className="bg-orange-500/20 p-2 rounded-full mb-2 group-hover:bg-orange-500/30 transition">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          <div className="bg-purple-500/20 p-2 rounded-full mb-2 group-hover:bg-purple-500/30 transition">
+            <Banknote className="w-6 h-6" />
           </div>
-          <span>Send to Safe</span>
+          <span>💸 Retirar a Yape</span>
         </button>
       </div>
 
@@ -236,11 +248,37 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenSettings }) => {
                 <Users className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-white font-medium text-sm">Community Angels</p>
-                <p className="text-xs text-purple-400">12 Anonymous Donors</p>
+                <p className="text-white font-medium text-sm flex items-center gap-2">
+                  Community Angels
+                  {balanceLoading && (
+                    <Loader2 className="w-3 h-3 animate-spin text-purple-400" />
+                  )}
+                </p>
+                {caseInfo ? (
+                  <p className="text-xs text-purple-400">
+                    {caseInfo.displayName} - {caseInfo.progress.toFixed(0)}% funded
+                    {blockchainBalance && (
+                      <span className="ml-2 text-green-400">
+                        • {blockchainBalance.balanceInEth.toFixed(4)} frxETH
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-xs text-purple-400">12 Anonymous Donors</p>
+                )}
               </div>
             </div>
-            <span className="text-white font-mono font-bold">+${wallet.communityAngels.toFixed(2)}</span>
+            <div className="text-right">
+              <span className="text-white font-mono font-bold block">
+                +${blockchainBalance
+                  ? blockchainBalance.balanceInUsd.toFixed(2)
+                  : (caseInfo ? caseInfo.currentAmount.toFixed(2) : wallet.communityAngels.toFixed(2))
+                }
+              </span>
+              {blockchainBalance && (
+                <span className="text-xs text-green-400">Blockchain ✓</span>
+              )}
+            </div>
           </div>
 
           {/* Yield */}
@@ -509,6 +547,14 @@ export const WalletView: React.FC<WalletViewProps> = ({ onOpenSettings }) => {
           </div>
         </div>
       )}
+
+      {/* Withdrawal Modal */}
+      <WithdrawalModal
+        isOpen={showWithdrawalModal}
+        onClose={() => setShowWithdrawalModal(false)}
+        availableBalance={blockchainBalance?.balanceInUsd || caseInfo?.currentAmount || 0}
+        caseId={caseInfo?.caseId || ''}
+      />
     </div>
   );
 };

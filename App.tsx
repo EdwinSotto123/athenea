@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { AppMode, AgentTab } from './types';
 import Calculator from './components/Calculator';
 import AgentDashboard from './components/AgentDashboard';
+import PublicDonationPage from './components/PublicDonationPage';
 import { getAthenaAgent } from './lib/athena-agent';
+import { useDonationListener } from './lib/useDonationListener';
 
 export default function App() {
   const [mode, setMode] = useState<AppMode>(AppMode.CALCULATOR);
@@ -12,8 +14,14 @@ export default function App() {
   // Flash Message State (for the 9/11= command)
   const [flashMsg, setFlashMsg] = useState<string | null>(null);
 
+  // Check if we're on /donate route
+  const isDonationPage = window.location.pathname === '/donate';
+
   // Initialize agent on mount
   const agent = getAthenaAgent();
+
+  // Start donation listener (monitors blockchain for incoming donations)
+  useDonationListener();
 
   const handleCommand = async (cmd: string) => {
     switch (cmd) {
@@ -73,6 +81,11 @@ export default function App() {
         break;
     }
   };
+
+  // If on /donate route, show public donation page
+  if (isDonationPage) {
+    return <PublicDonationPage />;
+  }
 
   return (
     <div className="h-full w-full bg-black relative">

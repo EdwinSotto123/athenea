@@ -32,15 +32,20 @@ import {
 } from 'firebase/firestore';
 
 // ============ FIREBASE CONFIG ============
+// Configuration loaded from environment variables (.env.local)
+// See .env.firebase for reference
+
+// @ts-ignore - Vite env types
+const env = (import.meta as any).env || {};
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBh8de3BSC5-1nwaxeeYld_hdkEetTIPCg",
-    authDomain: "athenea-b407a.firebaseapp.com",
-    projectId: "athenea-b407a",
-    storageBucket: "athenea-b407a.firebasestorage.app",
-    messagingSenderId: "722450777710",
-    appId: "1:722450777710:web:37c33cbc60f38cfcc1c87f",
-    measurementId: "G-L6WGFHQ2HP"
+    apiKey: env.VITE_FIREBASE_API_KEY || "",
+    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || "",
+    projectId: env.VITE_FIREBASE_PROJECT_ID || "",
+    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || "",
+    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || "",
+    appId: env.VITE_FIREBASE_APP_ID || "",
+    measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || ""
 };
 
 // Initialize Firebase
@@ -101,6 +106,12 @@ export async function registerUser(
         });
 
         console.log('[Firebase] User registered:', athenaUser.displayName);
+
+        // Send log to IQAI ATP Dashboard
+        import('./atp-logs').then(({ atpLogs }) => {
+            atpLogs.userJoined();
+        }).catch(() => { });
+
         return athenaUser;
 
     } catch (error: any) {
@@ -251,6 +262,13 @@ export async function saveEscapePlan(userId: string, plan: any): Promise<void> {
             ...plan,
             updatedAt: serverTimestamp()
         });
+
+        // Send log to IQAI ATP Dashboard
+        if (plan.isReady && plan.freedomGoal?.targetAmount) {
+            import('./atp-logs').then(({ atpLogs }) => {
+                atpLogs.planCompleted(plan.freedomGoal.targetAmount);
+            }).catch(() => { });
+        }
     } catch (error) {
         console.error('[Firebase] Save plan error:', error);
     }
@@ -415,6 +433,11 @@ export async function saveEvidence(userId: string, evidence: {
             updatedAt: serverTimestamp()
         });
         console.log('[Firebase] Evidence saved:', evidence.id);
+
+        // Send log to IQAI ATP Dashboard
+        import('./atp-logs').then(({ atpLogs }) => {
+            atpLogs.evidenceSecured(evidence.type);
+        }).catch(() => { });
     } catch (error) {
         console.error('[Firebase] Save evidence error:', error);
         throw error;
