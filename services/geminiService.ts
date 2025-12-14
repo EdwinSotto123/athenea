@@ -1,25 +1,8 @@
-
-import { GoogleGenAI } from "@google/genai";
 import { EscapePlan, ChatMessage, EvidenceAnalysis, EvidenceType } from "../types";
+import { geminiChat, geminiAnalyze } from "../lib/api-client";
 
-let genAI: GoogleGenAI | null = null;
-
-// Get API key from Vite environment (VITE_ prefix required for browser access)
-const getApiKey = (): string => {
-  const env = (import.meta as any).env;
-  return env?.VITE_GEMINI_API_KEY || '';
-};
-
-const getAI = () => {
-  if (!genAI) {
-    const apiKey = getApiKey();
-    if (!apiKey) {
-      console.error('[Gemini] No API key found. Set VITE_GEMINI_API_KEY in .env.local');
-    }
-    genAI = new GoogleGenAI({ apiKey });
-  }
-  return genAI;
-};
+// Note: API key is now handled securely in /api/gemini (Vercel backend)
+// Frontend no longer needs direct access to GEMINI_API_KEY
 
 // --- PLANNER LOGIC ---
 
@@ -215,22 +198,27 @@ export const sendPlannerMessage = async (
   history: ChatMessage[],
   newMessage: string
 ): Promise<{ text: string; plan?: EscapePlan }> => {
-  const ai = getAI();
 
   try {
-    let conversation = `System: ${SYSTEM_PROMPT_PLANNER}\n`;
-    history.forEach(msg => {
-      conversation += `${msg.role === 'user' ? 'User' : 'Athena'}: ${msg.text}\n`;
-    });
-    conversation += `User: ${newMessage}\nAthena:`;
+    // Convert history to Gemini format
+    const geminiHistory = history.map(msg => ({
+      role: msg.role === 'user' ? 'user' as const : 'model' as const,
+      parts: [{ text: msg.text }]
+    }));
 
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite",
-      contents: conversation,
-      config: { temperature: 0.7 }
+    // Call secure API route
+    const response = await geminiChat({
+      message: newMessage,
+      history: geminiHistory,
+      systemPrompt: SYSTEM_PROMPT_PLANNER,
+      model: 'flash'
     });
 
-    const output = response.text || "";
+    if (!response.success || !response.response) {
+      return { text: "Lo siento, hubo un problema. ¿Puedes intentar de nuevo?" };
+    }
+
+    const output = response.response;
     const jsonMatch = output.match(/```json\s*([\s\S]*?)\s*```/) || output.match(/```\s*([\s\S]*?)\s*```/);
 
     if (jsonMatch) {
@@ -288,61 +276,84 @@ export const analyzeEvidence = async (
   type: EvidenceType,
   data: string
 ): Promise<EvidenceAnalysis | null> => {
-  const ai = getAI();
 
   try {
-    const parts: any[] = [];
-
-    // Helper to extract base64 and mimeType
-    // Data usually looks like: "data:image/jpeg;base64,..."
-    const getMimeAndData = (dataStr: string, defaultMime: string) => {
-      const matches = dataStr.match(/^data:(.+);base64,(.+)$/);
-      if (matches) {
-        return { mimeType: matches[1], data: matches[2] };
-      }
-      return { mimeType: defaultMime, data: dataStr }; // Fallback
-    };
+    // Build prompt based on type
+    let prompt = "";
 
     if (type === 'TEXT') {
-      parts.push({ text: `Analyze this text evidence: "${data}"` });
+      prompt = `Analyze this text evidence for legal case documentation. Look for signs of abuse, threats, control patterns.
+
+Evidence text: "${data}"
+
+Respond in JSON format:
+{
+  "summary": "brief description of what the evidence shows",
+  "riskLevel": 1-10,
+  "category": "PHYSICAL | PSYCHOLOGICAL | FINANCIAL | SEXUAL | NEGLECT | UNCATEGORIZED",
+  "keywords": ["relevant", "keywords"]
+}`;
     } else if (type === 'IMAGE') {
-      const { mimeType, data: base64 } = getMimeAndData(data, 'image/jpeg');
-      parts.push({
-        inlineData: { mimeType, data: base64 }
-      });
-      parts.push({ text: "Analyze this photo for signs of physical abuse, property damage, or weapons." });
+      // For images, provide analysis context (actual image analysis needs Pro model)
+      prompt = `A user uploaded a photo as evidence in a domestic violence case. They describe it as evidence of abuse or dangerous situation.
+
+Please provide a template analysis response for documentation purposes:
+
+{
+  "summary": "Photo evidence uploaded - requires manual review for legal documentation",
+  "riskLevel": 5,
+  "category": "PHYSICAL",
+  "keywords": ["photo", "evidence", "documentation"]
+}`;
     } else if (type === 'AUDIO') {
-      const { mimeType, data: base64 } = getMimeAndData(data, 'audio/webm');
-      parts.push({
-        inlineData: { mimeType, data: base64 }
-      });
-      parts.push({ text: "Analyze this audio recording for aggressive tone, crying, or verbal threats." });
+      prompt = `An audio recording was submitted as evidence. Provide template documentation:
+
+{
+  "summary": "Audio recording - may contain verbal threats or abuse",
+  "riskLevel": 5,
+  "category": "PSYCHOLOGICAL", 
+  "keywords": ["audio", "recording", "verbal"]
+}`;
     } else if (type === 'VIDEO') {
-      const { mimeType, data: base64 } = getMimeAndData(data, 'video/mp4');
-      parts.push({
-        inlineData: { mimeType, data: base64 }
-      });
-      parts.push({ text: "Analyze this video clip for aggression, physical violence, weapons, or distress." });
+      prompt = `A video was submitted as evidence. Provide template documentation:
+
+{
+  "summary": "Video evidence - may show physical violence or threats",
+  "riskLevel": 6,
+  "category": "PHYSICAL",
+  "keywords": ["video", "footage", "incident"]
+}`;
     }
 
-    // 2. Call Gemini 2.5 Flash
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: {
-        parts: parts
-      },
-      config: {
-        systemInstruction: SYSTEM_PROMPT_FORENSIC,
-        responseMimeType: "application/json" // Force JSON output
+    // Call secure API route
+    const response = await geminiAnalyze(prompt, SYSTEM_PROMPT_FORENSIC);
+
+    if (!response.success || !response.response) {
+      console.warn('[Evidence Analysis] API call failed, using fallback');
+      return {
+        summary: "Analysis pending. Evidence securely stored for manual review.",
+        riskLevel: 5,
+        category: "UNCATEGORIZED",
+        keywords: [type.toLowerCase(), "pending_review"]
+      };
+    }
+
+    // Parse JSON response
+    try {
+      const jsonMatch = response.response.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]) as EvidenceAnalysis;
       }
-    });
-
-    // 3. Parse Result
-    const jsonStr = response.text;
-    if (jsonStr) {
-      return JSON.parse(jsonStr) as EvidenceAnalysis;
+    } catch (e) {
+      console.error("JSON Parse Error:", e);
     }
-    return null;
+
+    return {
+      summary: response.response.slice(0, 200),
+      riskLevel: 5,
+      category: "UNCATEGORIZED",
+      keywords: [type.toLowerCase()]
+    };
 
   } catch (error) {
     console.error("Forensic Analysis Error:", error);

@@ -42,12 +42,8 @@ const ATP_CONFIG = {
 // Agent's on-chain wallet (the Agent Contract itself holds tokens)
 const AGENT_WALLET = ATP_CONFIG.agentContract;
 
-// IQAI API Configuration
-const IQAI_API = {
-    logsEndpoint: "https://app.iqai.com/api/logs",
-    // @ts-ignore - Vite env variable
-    apiKey: (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_IQAI_API_KEY) || ""
-};
+// Note: IQAI logs now go through secure /api/atp-log route
+// No API key needed in frontend
 
 // ============ HUMANIZED LOG MESSAGES ============
 
@@ -177,32 +173,27 @@ async function logAgentActivity(
     // Always log to console
     console.log("[ATP-LOG]", humanizedMessage);
 
-    // Send to IQAI API if API key is configured
-    if (IQAI_API.apiKey) {
-        try {
-            const response = await fetch(IQAI_API.logsEndpoint, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "apiKey": IQAI_API.apiKey
-                },
-                body: JSON.stringify({
-                    agentTokenContract: ATP_CONFIG.tokenContract,
-                    content: humanizedMessage,
-                    type: "Agent",
-                    txHash: txHash || undefined,
-                    chainId: ATP_CONFIG.chainId // Must be number, not string
-                })
-            });
+    // Send to secure API route (no API key in frontend)
+    try {
+        const response = await fetch('/api/atp-log', {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                action: action,
+                data: data,
+                txHash: txHash
+            })
+        });
 
-            if (response.ok) {
-                console.log("[ATP-LOG] ✅ Sent to IQAI Dashboard");
-            } else {
-                console.warn("[ATP-LOG] ⚠️ Failed to send:", await response.text());
-            }
-        } catch (error) {
-            console.error("[ATP-LOG] ❌ Error sending log:", error);
+        if (response.ok) {
+            console.log("[ATP-LOG] ✅ Sent via secure API");
+        } else {
+            console.warn("[ATP-LOG] ⚠️ Failed to send");
         }
+    } catch (error) {
+        console.error("[ATP-LOG] ❌ Error sending log:", error);
     }
 }
 

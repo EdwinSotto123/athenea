@@ -1,25 +1,12 @@
 /**
- * IPFS Service using Pinata
+ * IPFS Service using Secure API Route
  * 
- * Uploads files to IPFS via Pinata and returns the CID
- * for permanent, decentralized storage of evidence.
+ * Uploads files to IPFS via /api/ipfs serverless function.
+ * PINATA_JWT is stored securely in Vercel (not exposed to frontend).
  */
 
-// Pinata API endpoints
-const PINATA_API_URL = 'https://api.pinata.cloud';
-const PINATA_GATEWAY = 'https://gateway.pinata.cloud/ipfs';
+// Public gateway for viewing content
 const PUBLIC_GATEWAY = 'https://ipfs.io/ipfs';
-
-// Get JWT from environment (Vite style)
-const getPinataJWT = (): string | null => {
-    // Try Vite env first (cast to any to avoid TS errors)
-    const env = (import.meta as any).env;
-    if (env?.VITE_PINATA_JWT) {
-        return env.VITE_PINATA_JWT;
-    }
-    // Fallback for demo
-    return null;
-};
 
 export interface IPFSUploadResult {
     success: boolean;
@@ -40,68 +27,49 @@ export interface EvidenceMetadata {
 }
 
 /**
- * Upload a file to IPFS via Pinata
+ * Upload a file to IPFS via secure API route
  */
 export async function uploadToIPFS(
     file: File | Blob,
     metadata: EvidenceMetadata
 ): Promise<IPFSUploadResult> {
-    const jwt = getPinataJWT();
-
-    // If no JWT, use fallback demo mode
-    if (!jwt) {
-        console.warn('[IPFS] No Pinata JWT, using demo mode');
-        return generateDemoResult(metadata);
-    }
-
     try {
-        // Create form data
-        const formData = new FormData();
-        formData.append('file', file);
+        // Convert file to base64
+        const arrayBuffer = await file.arrayBuffer();
+        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
-        // Add Pinata metadata
-        const pinataMetadata = JSON.stringify({
-            name: `athena-evidence-${Date.now()}`,
-            keyvalues: {
-                type: metadata.type,
-                description: metadata.description.substring(0, 100),
-                timestamp: metadata.timestamp.toString(),
-                caseId: metadata.caseId || 'anonymous'
-            }
-        });
-        formData.append('pinataMetadata', pinataMetadata);
-
-        // Pinata options
-        const pinataOptions = JSON.stringify({
-            cidVersion: 1
-        });
-        formData.append('pinataOptions', pinataOptions);
-
-        // Upload to Pinata
-        const response = await fetch(`${PINATA_API_URL}/pinning/pinFileToIPFS`, {
+        // Call secure API route
+        const response = await fetch('/api/ipfs', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${jwt}`
+                'Content-Type': 'application/json'
             },
-            body: formData
+            body: JSON.stringify({
+                content: base64,
+                filename: `athena-evidence-${Date.now()}`,
+                contentType: file.type || 'application/octet-stream',
+                metadata: {
+                    type: metadata.type,
+                    description: metadata.description,
+                    caseId: metadata.caseId
+                }
+            })
         });
 
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(`Pinata upload failed: ${error}`);
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Upload failed');
         }
 
-        const result = await response.json();
-        const cid = result.IpfsHash;
-
-        console.log('[IPFS] File uploaded successfully:', cid);
+        console.log('[IPFS] File uploaded successfully:', result.cid);
 
         return {
             success: true,
-            cid,
-            ipfsUrl: `ipfs://${cid}`,
-            gatewayUrl: `${PUBLIC_GATEWAY}/${cid}`,
-            size: result.PinSize,
+            cid: result.cid,
+            ipfsUrl: result.ipfsUrl,
+            gatewayUrl: result.gatewayUrl,
+            size: result.size || 0,
             timestamp: new Date()
         };
 
