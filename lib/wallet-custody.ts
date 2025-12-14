@@ -237,6 +237,39 @@ export class WalletCustodyService {
         const random = Math.random().toString(36).substring(2, 6).toUpperCase();
         return `ATHENA-${timestamp}-${random}`;
     }
+
+    /**
+     * Get case metadata by case ID
+     */
+    async getCaseMetadata(caseId: string): Promise<CaseMetadata | null> {
+        try {
+            const caseDoc = await getDoc(doc(db, `cases/${caseId}`));
+            if (!caseDoc.exists()) return null;
+            return caseDoc.data() as CaseMetadata;
+        } catch (error) {
+            console.error('[Custody] Failed to get case metadata:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Get all public cases for donation page
+     */
+    async getPublicCases(): Promise<CaseMetadata[]> {
+        try {
+            const { collection, query, where, getDocs } = await import('firebase/firestore');
+            const casesQuery = query(
+                collection(db, 'cases'),
+                where('isPublic', '==', true),
+                where('isActive', '==', true)
+            );
+            const snapshot = await getDocs(casesQuery);
+            return snapshot.docs.map(doc => doc.data() as CaseMetadata);
+        } catch (error) {
+            console.error('[Custody] Failed to get public cases:', error);
+            return [];
+        }
+    }
 }
 
 // Singleton
