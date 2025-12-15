@@ -37,6 +37,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    console.log('[IPFS API] Request received');
+    console.log('[IPFS API] PINATA_JWT configured:', !!PINATA_JWT);
+
     if (!PINATA_JWT) {
         console.warn('[IPFS API] No Pinata JWT configured, using demo mode');
         // Return demo result
@@ -59,14 +62,85 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { content, filename, contentType, metadata }: IPFSUploadRequest = req.body;
 
     if (!content) {
+        console.error('[IPFS API] No content provided');
         return res.status(400).json({ error: 'Content is required' });
     }
 
+    console.log('[IPFS API] Content length:', content.length);
+    console.log('[IPFS API] Filename:', filename);
+    console.log('[IPFS API] Content type:', contentType);
+
     try {
         // Convert base64 to buffer
-        const buffer = Buffer.from(content, 'base64');
+        // Handle data URL prefix if present
+        let base64Data = content;
+        if (content.includes(',')) {
+            base64Data = content.split(',')[1];
+        }
 
-        // Create form data for Pinata
+        const buffer = Buffer.from(base64Data, 'base64');
+        console.log('[IPFS API] Buffer size:', buffer.length, 'bytes');
+
+        // Use Pinata's JSON API for smaller files (simpler and more reliable)
+        if (buffer.length < 1024 * 1024) { // Less than 1MB
+            console.log('[IPFS API] Using JSON upload for small file');
+
+            // For small files, use base64 JSON upload
+            const pinataBody = {
+                pinataContent: base64Data,
+                pinataMetadata: {
+                    name: filename || `athena-evidence-${Date.now()}`,
+                    keyvalues: {
+                        type: metadata?.type || 'UNKNOWN',
+                        description: (metadata?.description || '').substring(0, 100),
+                        timestamp: Date.now().toString()
+                    }
+                },
+                pinataOptions: {
+                    cidVersion: 1
+                }
+            };
+
+            const response = await fetch(`${PINATA_API_URL}/pinning/pinJSONToIPFS`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${PINATA_JWT}`
+                },
+                body: JSON.stringify(pinataBody)
+            });
+
+            const responseText = await response.text();
+            console.log('[IPFS API] Pinata response status:', response.status);
+            console.log('[IPFS API] Pinata response:', responseText.substring(0, 500));
+
+            if (!response.ok) {
+                return res.status(response.status).json({
+                    success: false,
+                    error: 'Pinata upload failed',
+                    details: responseText,
+                    status: response.status
+                });
+            }
+
+            const result = JSON.parse(responseText);
+            const cid = result.IpfsHash;
+
+            console.log('[IPFS API] ✅ File uploaded via JSON:', cid);
+
+            return res.status(200).json({
+                success: true,
+                cid,
+                ipfsUrl: `ipfs://${cid}`,
+                gatewayUrl: `${PUBLIC_GATEWAY}/${cid}`,
+                size: buffer.length,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // For larger files, use multipart form upload
+        console.log('[IPFS API] Using multipart upload for large file');
+
         const FormData = (await import('form-data')).default;
         const formData = new FormData();
 
@@ -104,19 +178,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             body: formData as any
         });
 
+        const responseText = await response.text();
+        console.log('[IPFS API] Pinata response status:', response.status);
+        console.log('[IPFS API] Pinata response:', responseText.substring(0, 500));
+
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('[IPFS API] Pinata error:', errorText);
             return res.status(response.status).json({
+                success: false,
                 error: 'Pinata upload failed',
-                details: errorText
+                details: responseText,
+                status: response.status
             });
         }
 
-        const result = await response.json();
+        const result = JSON.parse(responseText);
         const cid = result.IpfsHash;
 
-        console.log('[IPFS API] ✅ File uploaded:', cid);
+        console.log('[IPFS API] ✅ File uploaded via multipart:', cid);
 
         return res.status(200).json({
             success: true,
@@ -128,8 +206,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
     } catch (error: any) {
-        console.error('[IPFS API] Exception:', error);
+        console.error('[IPFS API] Exception:', error.message);
+        console.error('[IPFS API] Stack:', error.stack);
         return res.status(500).json({
+            success: false,
             error: 'Internal server error',
             message: error.message
         });
