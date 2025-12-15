@@ -38,11 +38,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.log('[IPFS API] Request received');
-    console.log('[IPFS API] PINATA_JWT configured:', !!PINATA_JWT);
 
     if (!PINATA_JWT) {
         console.warn('[IPFS API] No Pinata JWT configured, using demo mode');
-        // Return demo result
         const fakeCid = 'Qm' + Array(44).fill(0).map(() =>
             'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'.charAt(
                 Math.floor(Math.random() * 62)
@@ -62,17 +60,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { content, filename, contentType, metadata }: IPFSUploadRequest = req.body;
 
     if (!content) {
-        console.error('[IPFS API] No content provided');
         return res.status(400).json({ error: 'Content is required' });
     }
 
-    console.log('[IPFS API] Content length:', content.length);
-    console.log('[IPFS API] Filename:', filename);
-    console.log('[IPFS API] Content type:', contentType);
-
     try {
-        // Convert base64 to buffer
-        // Handle data URL prefix if present
+        // Convert base64 to buffer - handle data URL prefix if present
         let base64Data = content;
         if (content.includes(',')) {
             base64Data = content.split(',')[1];
@@ -80,71 +72,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const buffer = Buffer.from(base64Data, 'base64');
         console.log('[IPFS API] Buffer size:', buffer.length, 'bytes');
+        console.log('[IPFS API] Content type:', contentType);
 
-        // Use Pinata's JSON API for smaller files (simpler and more reliable)
-        if (buffer.length < 1024 * 1024) { // Less than 1MB
-            console.log('[IPFS API] Using JSON upload for small file');
-
-            // For small files, use base64 JSON upload
-            const pinataBody = {
-                pinataContent: base64Data,
-                pinataMetadata: {
-                    name: filename || `athena-evidence-${Date.now()}`,
-                    keyvalues: {
-                        type: metadata?.type || 'UNKNOWN',
-                        description: (metadata?.description || '').substring(0, 100),
-                        timestamp: Date.now().toString()
-                    }
-                },
-                pinataOptions: {
-                    cidVersion: 1
-                }
-            };
-
-            const response = await fetch(`${PINATA_API_URL}/pinning/pinJSONToIPFS`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${PINATA_JWT}`
-                },
-                body: JSON.stringify(pinataBody)
-            });
-
-            const responseText = await response.text();
-            console.log('[IPFS API] Pinata response status:', response.status);
-            console.log('[IPFS API] Pinata response:', responseText.substring(0, 500));
-
-            if (!response.ok) {
-                return res.status(response.status).json({
-                    success: false,
-                    error: 'Pinata upload failed',
-                    details: responseText,
-                    status: response.status
-                });
-            }
-
-            const result = JSON.parse(responseText);
-            const cid = result.IpfsHash;
-
-            console.log('[IPFS API] ✅ File uploaded via JSON:', cid);
-
-            return res.status(200).json({
-                success: true,
-                cid,
-                ipfsUrl: `ipfs://${cid}`,
-                gatewayUrl: `${PUBLIC_GATEWAY}/${cid}`,
-                size: buffer.length,
-                timestamp: new Date().toISOString()
-            });
-        }
-
-        // For larger files, use multipart form upload
-        console.log('[IPFS API] Using multipart upload for large file');
-
+        // Use multipart form upload for BINARY files (images, audio, etc.)
         const FormData = (await import('form-data')).default;
         const formData = new FormData();
 
-        // Add file
+        // Add file as binary
         formData.append('file', buffer, {
             filename: filename || `evidence-${Date.now()}`,
             contentType: contentType || 'application/octet-stream'
@@ -152,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // Add Pinata metadata
         const pinataMetadata = JSON.stringify({
-            name: `athena-evidence-${Date.now()}`,
+            name: filename || `athena-evidence-${Date.now()}`,
             keyvalues: {
                 type: metadata?.type || 'UNKNOWN',
                 description: (metadata?.description || '').substring(0, 100),
@@ -163,12 +97,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         formData.append('pinataMetadata', pinataMetadata);
 
         // Pinata options
-        const pinataOptions = JSON.stringify({
-            cidVersion: 1
-        });
-        formData.append('pinataOptions', pinataOptions);
+        formData.append('pinataOptions', JSON.stringify({ cidVersion: 1 }));
 
-        // Upload to Pinata
+        // Upload to Pinata as BINARY FILE
         const response = await fetch(`${PINATA_API_URL}/pinning/pinFileToIPFS`, {
             method: 'POST',
             headers: {
@@ -180,34 +111,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const responseText = await response.text();
         console.log('[IPFS API] Pinata response status:', response.status);
-        console.log('[IPFS API] Pinata response:', responseText.substring(0, 500));
 
         if (!response.ok) {
+            console.error('[IPFS API] Pinata error:', responseText);
             return res.status(response.status).json({
                 success: false,
                 error: 'Pinata upload failed',
-                details: responseText,
-                status: response.status
+                details: responseText
             });
         }
 
         const result = JSON.parse(responseText);
         const cid = result.IpfsHash;
 
-        console.log('[IPFS API] ✅ File uploaded via multipart:', cid);
+        console.log('[IPFS API] ✅ Binary file uploaded:', cid);
 
         return res.status(200).json({
             success: true,
             cid,
             ipfsUrl: `ipfs://${cid}`,
             gatewayUrl: `${PUBLIC_GATEWAY}/${cid}`,
-            size: result.PinSize,
+            size: result.PinSize || buffer.length,
             timestamp: new Date().toISOString()
         });
 
     } catch (error: any) {
         console.error('[IPFS API] Exception:', error.message);
-        console.error('[IPFS API] Stack:', error.stack);
         return res.status(500).json({
             success: false,
             error: 'Internal server error',
