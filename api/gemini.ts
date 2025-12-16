@@ -16,13 +16,19 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ============ RATE LIMITING + IP BLOCKING ============
-// Simple in-memory rate limiter (resets on cold start, but effective for DDoS protection)
+// Aggressive rate limiter for DDoS protection
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 requests per minute per IP (reduced from 10)
 
-// IP Blocking configuration
-const BLOCK_THRESHOLD = 3; // Block after 3 rate limit violations
-const BLOCK_DURATION_MS = 3600000; // Block for 1 hour (3600000ms)
+// IP Blocking configuration - AGGRESSIVE
+const BLOCK_THRESHOLD = 1; // Block after FIRST rate limit violation (reduced from 3)
+const BLOCK_DURATION_MS = 86400000; // Block for 24 HOURS (increased from 1 hour)
+
+// HARDCODED BLOCKLIST - Known attackers (add IPs here permanently)
+const PERMANENT_BLOCKLIST: string[] = [
+    '208.77.244.6', // DDoS attacker - Dec 16, 2024
+    // Add more IPs as needed
+];
 
 interface RateLimitEntry {
     count: number;
@@ -51,10 +57,16 @@ function getClientIP(req: VercelRequest): string {
     return 'unknown';
 }
 
-function isIPBlocked(ip: string): { blocked: boolean; remainingMs: number } {
+function isIPBlocked(ip: string): { blocked: boolean; remainingMs: number; permanent: boolean } {
+    // Check permanent blocklist FIRST (instant rejection)
+    if (PERMANENT_BLOCKLIST.includes(ip)) {
+        console.error(`🚫 [SECURITY] PERMANENTLY BLOCKED IP tried to access: ${ip}`);
+        return { blocked: true, remainingMs: 999999999, permanent: true };
+    }
+
     const blocked = blockedIPs.get(ip);
     if (!blocked) {
-        return { blocked: false, remainingMs: 0 };
+        return { blocked: false, remainingMs: 0, permanent: false };
     }
 
     const now = Date.now();
@@ -64,10 +76,10 @@ function isIPBlocked(ip: string): { blocked: boolean; remainingMs: number } {
         // Block expired, remove from blocklist
         blockedIPs.delete(ip);
         rateLimitMap.delete(ip); // Also reset their rate limit
-        return { blocked: false, remainingMs: 0 };
+        return { blocked: false, remainingMs: 0, permanent: false };
     }
 
-    return { blocked: true, remainingMs: BLOCK_DURATION_MS - elapsed };
+    return { blocked: true, remainingMs: BLOCK_DURATION_MS - elapsed, permanent: false };
 }
 
 function blockIP(ip: string, reason: string): void {
