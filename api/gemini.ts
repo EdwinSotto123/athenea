@@ -5,6 +5,8 @@
  * The API key is stored in Vercel environment variables (not exposed to frontend).
  * 
  * Models: gemini-2.5-flash-preview-05-20, gemini-2.5-pro-preview-05-06
+ * 
+ * SECURITY: Rate limiting implemented to prevent DDoS/abuse attacks
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -12,6 +14,64 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 // Environment variable (from Vercel Dashboard, NOT frontend)
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+// ============ RATE LIMITING ============
+// Simple in-memory rate limiter (resets on cold start, but effective for DDoS protection)
+const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
+const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
+
+interface RateLimitEntry {
+    count: number;
+    firstRequest: number;
+}
+
+const rateLimitMap = new Map<string, RateLimitEntry>();
+
+function getClientIP(req: VercelRequest): string {
+    // Vercel provides real IP in x-forwarded-for or x-real-ip headers
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+        return forwarded.split(',')[0].trim();
+    }
+    const realIp = req.headers['x-real-ip'];
+    if (typeof realIp === 'string') {
+        return realIp;
+    }
+    return 'unknown';
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
+    const now = Date.now();
+    const entry = rateLimitMap.get(ip);
+
+    // Clean up old entries periodically
+    if (rateLimitMap.size > 1000) {
+        for (const [key, val] of rateLimitMap.entries()) {
+            if (now - val.firstRequest > RATE_LIMIT_WINDOW_MS) {
+                rateLimitMap.delete(key);
+            }
+        }
+    }
+
+    if (!entry || (now - entry.firstRequest > RATE_LIMIT_WINDOW_MS)) {
+        // New window
+        rateLimitMap.set(ip, { count: 1, firstRequest: now });
+        return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+    }
+
+    if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
+        const resetIn = RATE_LIMIT_WINDOW_MS - (now - entry.firstRequest);
+        return { allowed: false, remaining: 0, resetIn };
+    }
+
+    entry.count++;
+    return {
+        allowed: true,
+        remaining: RATE_LIMIT_MAX_REQUESTS - entry.count,
+        resetIn: RATE_LIMIT_WINDOW_MS - (now - entry.firstRequest)
+    };
+}
+// ============ END RATE LIMITING ============
 
 // Available models
 const MODELS = {
@@ -40,6 +100,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
+
+    // ============ RATE LIMIT CHECK ============
+    const clientIP = getClientIP(req);
+    const rateLimit = checkRateLimit(clientIP);
+
+    // Set rate limit headers
+    res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX_REQUESTS.toString());
+    res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
+    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimit.resetIn / 1000).toString());
+
+    if (!rateLimit.allowed) {
+        console.warn(`[Gemini API] Rate limit exceeded for IP: ${clientIP}`);
+        return res.status(429).json({
+            error: 'Too many requests',
+            message: 'Rate limit exceeded. Please wait before making another request.',
+            retryAfter: Math.ceil(rateLimit.resetIn / 1000)
+        });
+    }
+    // ============ END RATE LIMIT CHECK ============
 
     if (!GEMINI_API_KEY) {
         console.error('[Gemini API] No API key configured');
