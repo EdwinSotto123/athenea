@@ -15,17 +15,28 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
-// ============ RATE LIMITING ============
+// ============ RATE LIMITING + IP BLOCKING ============
 // Simple in-memory rate limiter (resets on cold start, but effective for DDoS protection)
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 10; // Max 10 requests per minute per IP
 
+// IP Blocking configuration
+const BLOCK_THRESHOLD = 3; // Block after 3 rate limit violations
+const BLOCK_DURATION_MS = 3600000; // Block for 1 hour (3600000ms)
+
 interface RateLimitEntry {
     count: number;
     firstRequest: number;
+    violations: number; // Track how many times this IP hit the rate limit
+}
+
+interface BlockedIP {
+    blockedAt: number;
+    reason: string;
 }
 
 const rateLimitMap = new Map<string, RateLimitEntry>();
+const blockedIPs = new Map<string, BlockedIP>();
 
 function getClientIP(req: VercelRequest): string {
     // Vercel provides real IP in x-forwarded-for or x-real-ip headers
@@ -40,8 +51,44 @@ function getClientIP(req: VercelRequest): string {
     return 'unknown';
 }
 
-function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number } {
+function isIPBlocked(ip: string): { blocked: boolean; remainingMs: number } {
+    const blocked = blockedIPs.get(ip);
+    if (!blocked) {
+        return { blocked: false, remainingMs: 0 };
+    }
+
     const now = Date.now();
+    const elapsed = now - blocked.blockedAt;
+
+    if (elapsed >= BLOCK_DURATION_MS) {
+        // Block expired, remove from blocklist
+        blockedIPs.delete(ip);
+        rateLimitMap.delete(ip); // Also reset their rate limit
+        return { blocked: false, remainingMs: 0 };
+    }
+
+    return { blocked: true, remainingMs: BLOCK_DURATION_MS - elapsed };
+}
+
+function blockIP(ip: string, reason: string): void {
+    blockedIPs.set(ip, { blockedAt: Date.now(), reason });
+    console.error(`🚫 [SECURITY] IP BLOCKED: ${ip} - Reason: ${reason}`);
+}
+
+function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number; blocked: boolean } {
+    const now = Date.now();
+
+    // First check if IP is blocked
+    const blockStatus = isIPBlocked(ip);
+    if (blockStatus.blocked) {
+        return {
+            allowed: false,
+            remaining: 0,
+            resetIn: blockStatus.remainingMs,
+            blocked: true
+        };
+    }
+
     const entry = rateLimitMap.get(ip);
 
     // Clean up old entries periodically
@@ -54,20 +101,32 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
     }
 
     if (!entry || (now - entry.firstRequest > RATE_LIMIT_WINDOW_MS)) {
-        // New window
-        rateLimitMap.set(ip, { count: 1, firstRequest: now });
-        return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS };
+        // New window - preserve violations count if exists
+        const previousViolations = entry?.violations || 0;
+        rateLimitMap.set(ip, { count: 1, firstRequest: now, violations: previousViolations });
+        return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS, blocked: false };
     }
 
     if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
+        // Rate limit exceeded - increment violations
+        entry.violations = (entry.violations || 0) + 1;
+
+        // Check if should be blocked
+        if (entry.violations >= BLOCK_THRESHOLD) {
+            blockIP(ip, `Exceeded rate limit ${BLOCK_THRESHOLD} times`);
+            return { allowed: false, remaining: 0, resetIn: BLOCK_DURATION_MS, blocked: true };
+        }
+
         const resetIn = RATE_LIMIT_WINDOW_MS - (now - entry.firstRequest);
-        return { allowed: false, remaining: 0, resetIn };
+        console.warn(`[Rate Limit] IP ${ip} violation #${entry.violations}/${BLOCK_THRESHOLD}`);
+        return { allowed: false, remaining: 0, resetIn, blocked: false };
     }
 
     entry.count++;
     return {
         allowed: true,
         remaining: RATE_LIMIT_MAX_REQUESTS - entry.count,
+        blocked: false,
         resetIn: RATE_LIMIT_WINDOW_MS - (now - entry.firstRequest)
     };
 }
@@ -101,7 +160,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // ============ RATE LIMIT CHECK ============
+    // ============ RATE LIMIT & IP BLOCK CHECK ============
     const clientIP = getClientIP(req);
     const rateLimit = checkRateLimit(clientIP);
 
@@ -110,11 +169,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
     res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimit.resetIn / 1000).toString());
 
+    // If IP is blocked, return 403 Forbidden
+    if (rateLimit.blocked) {
+        console.error(`🚫 [Gemini API] BLOCKED IP attempted access: ${clientIP}`);
+        return res.status(403).json({
+            error: 'Access denied',
+            message: 'Your IP has been temporarily blocked due to excessive requests. Please try again later.',
+            blockedFor: Math.ceil(rateLimit.resetIn / 1000) + ' seconds',
+            retryAfter: Math.ceil(rateLimit.resetIn / 1000)
+        });
+    }
+
+    // If rate limited (not blocked yet), return 429
     if (!rateLimit.allowed) {
         console.warn(`[Gemini API] Rate limit exceeded for IP: ${clientIP}`);
         return res.status(429).json({
             error: 'Too many requests',
-            message: 'Rate limit exceeded. Please wait before making another request.',
+            message: 'Rate limit exceeded. Continued abuse will result in IP block.',
             retryAfter: Math.ceil(rateLimit.resetIn / 1000)
         });
     }
