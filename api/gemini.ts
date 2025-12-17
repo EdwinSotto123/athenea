@@ -159,10 +159,34 @@ interface GeminiRequest {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // CORS headers
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // ============ ALLOWED ORIGINS (your domains only) ============
+    const ALLOWED_ORIGINS = [
+        'https://athenea-nine.vercel.app',
+        'https://athenea.vercel.app',
+    ];
+
+    // Secret token for API authentication (set in Vercel environment variables)
+    const API_SECRET = process.env.INTERNAL_API_SECRET || '';
+
+    // Get request origin
+    const origin = req.headers.origin || req.headers.referer || '';
+    const requestOrigin = origin.replace(/\/$/, ''); // Remove trailing slash
+
+    // Check if origin is allowed
+    const isAllowedOrigin = ALLOWED_ORIGINS.some(allowed =>
+        requestOrigin.startsWith(allowed) || requestOrigin === allowed
+    );
+
+    // ============ STRICT CORS (only your domains) ============
+    if (isAllowedOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+    } else {
+        // Don't set CORS header for unknown origins - browser will block
+        res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+    }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Token');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
@@ -170,6 +194,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    // ============ ORIGIN VALIDATION ============
+    // Block requests from unknown origins (prevents direct API calls from other sites)
+    if (!isAllowedOrigin && process.env.NODE_ENV === 'production') {
+        console.error(`🚫 [SECURITY] Blocked request from unauthorized origin: ${origin}`);
+        return res.status(403).json({
+            error: 'Forbidden',
+            message: 'Unauthorized origin'
+        });
+    }
+
+    // ============ API TOKEN VALIDATION (optional extra layer) ============
+    // If you set INTERNAL_API_SECRET in Vercel, frontend must send it
+    if (API_SECRET) {
+        const clientToken = req.headers['x-api-token'] || req.body?.apiToken;
+        if (clientToken !== API_SECRET) {
+            console.error(`🚫 [SECURITY] Invalid API token from: ${origin}`);
+            return res.status(401).json({
+                error: 'Unauthorized',
+                message: 'Invalid or missing API token'
+            });
+        }
     }
 
     // ============ RATE LIMIT & IP BLOCK CHECK ============
