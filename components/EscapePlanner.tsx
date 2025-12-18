@@ -178,6 +178,41 @@ export const EscapePlanner: React.FC = () => {
     if (e.key === 'Enter') handleSend();
   };
 
+  // Handle creating a new plan (asks if circumstances have changed)
+  const handleNewPlan = async () => {
+    const user = auth.currentUser;
+
+    // Message for updating the plan
+    const updatePlanMessage: ChatMessage = {
+      role: 'model',
+      text: `💜 Entiendo que quieres actualizar tu plan. Las situaciones pueden cambiar, y es importante mantener tu estrategia actualizada.
+
+Cuéntame, ¿ha cambiado algo desde la última vez?
+
+Por ejemplo:
+• ¿Tu destino de escape es diferente ahora?
+• ¿Alguna persona de confianza ya no es segura?
+• ¿Ha cambiado tu situación financiera?
+• ¿El nivel de peligro ha aumentado o disminuido?
+• ¿Tienes nuevos contactos de apoyo?
+
+No te preocupes si el plan anterior ya no aplica. Juntas crearemos uno nuevo que se ajuste a tu realidad actual. 🛡️`
+    };
+
+    // Reset to new plan conversation
+    setMessages([INITIAL_MESSAGE, updatePlanMessage]);
+    setActiveTab('chat');
+
+    // Save the update message to history
+    if (user) {
+      try {
+        await saveChatMessage(user.uid, updatePlanMessage);
+      } catch (error) {
+        console.error('[EscapePlanner] Failed to save new plan message:', error);
+      }
+    }
+  };
+
   // 1. LOADING HISTORY SCREEN
   if (isLoadingHistory) {
     return (
@@ -242,8 +277,8 @@ export const EscapePlanner: React.FC = () => {
           <button
             onClick={() => setActiveTab('plan')}
             className={`flex-1 py-2 px-4 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 ${activeTab === 'plan'
-                ? 'bg-athena-600 text-white shadow-lg'
-                : plan ? 'text-gray-400 hover:text-white' : 'text-gray-600'
+              ? 'bg-athena-600 text-white shadow-lg'
+              : plan ? 'text-gray-400 hover:text-white' : 'text-gray-600'
               }`}
           >
             📋 MI PLAN
@@ -253,8 +288,8 @@ export const EscapePlanner: React.FC = () => {
           <button
             onClick={() => setActiveTab('chat')}
             className={`flex-1 py-2 px-4 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 ${activeTab === 'chat'
-                ? 'bg-athena-600 text-white shadow-lg'
-                : 'text-gray-400 hover:text-white'
+              ? 'bg-athena-600 text-white shadow-lg'
+              : 'text-gray-400 hover:text-white'
               }`}
           >
             💬 {plan ? 'CONSULTAR' : 'CREAR PLAN'}
@@ -274,9 +309,17 @@ export const EscapePlanner: React.FC = () => {
                   <p className="text-[10px] text-athena-500 font-bold uppercase tracking-widest mb-1">Estrategia Generada</p>
                   <h2 className="text-2xl font-bold text-white">Operación Libertad</h2>
                 </div>
-                <span className={`px-3 py-1 rounded text-xs font-bold border ${plan.riskLevel >= 8 ? 'bg-red-900/30 border-red-500 text-red-500' : 'bg-yellow-900/30 border-yellow-500 text-yellow-500'}`}>
-                  RIESGO {plan.riskLevel}
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleNewPlan}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-athena-600 hover:bg-athena-500 text-white transition-all flex items-center gap-1.5 shadow-lg"
+                  >
+                    🔄 Nuevo Plan
+                  </button>
+                  <span className={`px-3 py-1 rounded text-xs font-bold border ${plan.riskLevel >= 8 ? 'bg-red-900/30 border-red-500 text-red-500' : 'bg-yellow-900/30 border-yellow-500 text-yellow-500'}`}>
+                    RIESGO {plan.riskLevel}
+                  </span>
+                </div>
               </div>
 
               {/* Financial Goal */}
@@ -389,8 +432,8 @@ export const EscapePlanner: React.FC = () => {
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[85%] rounded-2xl p-4 text-sm leading-relaxed shadow-sm ${msg.role === 'user'
-                    ? 'bg-athena-600 text-white rounded-br-none'
-                    : 'bg-neutral-800 text-gray-200 rounded-bl-none border border-neutral-700'
+                  ? 'bg-athena-600 text-white rounded-br-none'
+                  : 'bg-neutral-800 text-gray-200 rounded-bl-none border border-neutral-700'
                   }`}>
                   {msg.text}
                 </div>
