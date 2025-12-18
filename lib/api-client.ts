@@ -99,6 +99,54 @@ export async function geminiAnalyze(
     }
 }
 
+/**
+ * Analyze media (image/audio/video) with Gemini multimodal
+ * This sends the actual media data to Gemini for real analysis
+ */
+export async function geminiAnalyzeMedia(
+    prompt: string,
+    mediaData: string, // Base64 encoded media
+    mediaType: string, // MIME type like 'image/jpeg', 'audio/webm', etc.
+    systemPrompt?: string
+): Promise<GeminiResponse> {
+    try {
+        console.log(`[API Client] Analyzing ${mediaType} with Gemini`);
+
+        const response = await fetch('/api/gemini', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                action: 'analyze',
+                message: prompt,
+                systemPrompt,
+                model: 'flash',
+                mediaData, // Base64 image/audio/video
+                mediaType  // MIME type
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('[API Client] Gemini media analysis failed:', data.error);
+            return { success: false, error: data.error || 'Media analysis failed' };
+        }
+
+        console.log('[API Client] Gemini media analysis successful');
+        return {
+            success: true,
+            response: data.response,
+            model: data.model,
+            usage: data.usage
+        };
+    } catch (error: any) {
+        console.error('[API Client] Gemini media analyze error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // ============ IPFS API (Paso 2) ============
 
 interface IPFSUploadResponse {

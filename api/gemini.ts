@@ -1,12 +1,16 @@
 /**
  * Gemini API Route - Secure Backend Handler
  * 
- * This serverless function handles all Gemini AI requests.
+ * This serverless function handles all Gemini AI requests including MULTIMODAL.
  * The API key is stored in Vercel environment variables (not exposed to frontend).
  * 
- * Models: gemini-2.5-flash-preview-05-20, gemini-2.5-pro-preview-05-06
+ * Features:
+ * - Text chat with history
+ * - Image analysis (Gemini 2.0 Vision)
+ * - Audio analysis
+ * - Video analysis
  * 
- * SECURITY: Rate limiting implemented to prevent DDoS/abuse attacks
+ * SECURITY: Rate limiting + IP blocking implemented
  */
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
@@ -16,24 +20,20 @@ const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // ============ RATE LIMITING + IP BLOCKING ============
-// Aggressive rate limiter for DDoS protection
 const RATE_LIMIT_WINDOW_MS = 60000; // 1 minute
-const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 requests per minute per IP (reduced from 10)
+const RATE_LIMIT_MAX_REQUESTS = 5; // Max 5 requests per minute per IP
+const BLOCK_THRESHOLD = 1; // Block after FIRST rate limit violation
+const BLOCK_DURATION_MS = 86400000; // Block for 24 HOURS
 
-// IP Blocking configuration - AGGRESSIVE
-const BLOCK_THRESHOLD = 1; // Block after FIRST rate limit violation (reduced from 3)
-const BLOCK_DURATION_MS = 86400000; // Block for 24 HOURS (increased from 1 hour)
-
-// HARDCODED BLOCKLIST - Known attackers (add IPs here permanently)
+// HARDCODED BLOCKLIST - Known attackers
 const PERMANENT_BLOCKLIST: string[] = [
     '208.77.244.6', // DDoS attacker - Dec 16, 2024
-    // Add more IPs as needed
 ];
 
 interface RateLimitEntry {
     count: number;
     firstRequest: number;
-    violations: number; // Track how many times this IP hit the rate limit
+    violations: number;
 }
 
 interface BlockedIP {
@@ -45,7 +45,6 @@ const rateLimitMap = new Map<string, RateLimitEntry>();
 const blockedIPs = new Map<string, BlockedIP>();
 
 function getClientIP(req: VercelRequest): string {
-    // Vercel provides real IP in x-forwarded-for or x-real-ip headers
     const forwarded = req.headers['x-forwarded-for'];
     if (typeof forwarded === 'string') {
         return forwarded.split(',')[0].trim();
@@ -58,9 +57,8 @@ function getClientIP(req: VercelRequest): string {
 }
 
 function isIPBlocked(ip: string): { blocked: boolean; remainingMs: number; permanent: boolean } {
-    // Check permanent blocklist FIRST (instant rejection)
     if (PERMANENT_BLOCKLIST.includes(ip)) {
-        console.error(`🚫 [SECURITY] PERMANENTLY BLOCKED IP tried to access: ${ip}`);
+        console.error(`🚫 [SECURITY] PERMANENTLY BLOCKED IP: ${ip}`);
         return { blocked: true, remainingMs: 999999999, permanent: true };
     }
 
@@ -73,9 +71,8 @@ function isIPBlocked(ip: string): { blocked: boolean; remainingMs: number; perma
     const elapsed = now - blocked.blockedAt;
 
     if (elapsed >= BLOCK_DURATION_MS) {
-        // Block expired, remove from blocklist
         blockedIPs.delete(ip);
-        rateLimitMap.delete(ip); // Also reset their rate limit
+        rateLimitMap.delete(ip);
         return { blocked: false, remainingMs: 0, permanent: false };
     }
 
@@ -84,26 +81,19 @@ function isIPBlocked(ip: string): { blocked: boolean; remainingMs: number; perma
 
 function blockIP(ip: string, reason: string): void {
     blockedIPs.set(ip, { blockedAt: Date.now(), reason });
-    console.error(`🚫 [SECURITY] IP BLOCKED: ${ip} - Reason: ${reason}`);
+    console.error(`🚫 [SECURITY] IP BLOCKED: ${ip} - ${reason}`);
 }
 
 function checkRateLimit(ip: string): { allowed: boolean; remaining: number; resetIn: number; blocked: boolean } {
     const now = Date.now();
 
-    // First check if IP is blocked
     const blockStatus = isIPBlocked(ip);
     if (blockStatus.blocked) {
-        return {
-            allowed: false,
-            remaining: 0,
-            resetIn: blockStatus.remainingMs,
-            blocked: true
-        };
+        return { allowed: false, remaining: 0, resetIn: blockStatus.remainingMs, blocked: true };
     }
 
     const entry = rateLimitMap.get(ip);
 
-    // Clean up old entries periodically
     if (rateLimitMap.size > 1000) {
         for (const [key, val] of rateLimitMap.entries()) {
             if (now - val.firstRequest > RATE_LIMIT_WINDOW_MS) {
@@ -113,24 +103,21 @@ function checkRateLimit(ip: string): { allowed: boolean; remaining: number; rese
     }
 
     if (!entry || (now - entry.firstRequest > RATE_LIMIT_WINDOW_MS)) {
-        // New window - preserve violations count if exists
         const previousViolations = entry?.violations || 0;
         rateLimitMap.set(ip, { count: 1, firstRequest: now, violations: previousViolations });
         return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetIn: RATE_LIMIT_WINDOW_MS, blocked: false };
     }
 
     if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
-        // Rate limit exceeded - increment violations
         entry.violations = (entry.violations || 0) + 1;
 
-        // Check if should be blocked
         if (entry.violations >= BLOCK_THRESHOLD) {
             blockIP(ip, `Exceeded rate limit ${BLOCK_THRESHOLD} times`);
             return { allowed: false, remaining: 0, resetIn: BLOCK_DURATION_MS, blocked: true };
         }
 
         const resetIn = RATE_LIMIT_WINDOW_MS - (now - entry.firstRequest);
-        console.warn(`[Rate Limit] IP ${ip} violation #${entry.violations}/${BLOCK_THRESHOLD}`);
+        console.warn(`[Rate Limit] IP ${ip} violation #${entry.violations}`);
         return { allowed: false, remaining: 0, resetIn, blocked: false };
     }
 
@@ -156,32 +143,31 @@ interface GeminiRequest {
     history?: Array<{ role: 'user' | 'model'; parts: Array<{ text: string }> }>;
     systemPrompt?: string;
     model?: 'flash' | 'pro';
+    // Multimodal support
+    mediaData?: string; // Base64 encoded image/audio/video
+    mediaType?: string; // MIME type like 'image/jpeg', 'audio/webm', etc.
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    // ============ ALLOWED ORIGINS (your domains only) ============
+    // ============ ALLOWED ORIGINS ============
     const ALLOWED_ORIGINS = [
         'https://athenea-nine.vercel.app',
         'https://athenea.vercel.app',
     ];
 
-    // Secret token for API authentication (set in Vercel environment variables)
     const API_SECRET = process.env.INTERNAL_API_SECRET || '';
 
-    // Get request origin
     const origin = req.headers.origin || req.headers.referer || '';
-    const requestOrigin = origin.replace(/\/$/, ''); // Remove trailing slash
+    const requestOrigin = origin.replace(/\/$/, '');
 
-    // Check if origin is allowed
     const isAllowedOrigin = ALLOWED_ORIGINS.some(allowed =>
         requestOrigin.startsWith(allowed) || requestOrigin === allowed
     );
 
-    // ============ STRICT CORS (only your domains) ============
+    // CORS
     if (isAllowedOrigin) {
         res.setHeader('Access-Control-Allow-Origin', requestOrigin);
     } else {
-        // Don't set CORS header for unknown origins - browser will block
         res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
     }
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -196,66 +182,50 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    // ============ ORIGIN VALIDATION ============
-    // Block requests from unknown origins (prevents direct API calls from other sites)
+    // Origin validation (production only)
     if (!isAllowedOrigin && process.env.NODE_ENV === 'production') {
-        console.error(`🚫 [SECURITY] Blocked request from unauthorized origin: ${origin}`);
-        return res.status(403).json({
-            error: 'Forbidden',
-            message: 'Unauthorized origin'
-        });
+        console.error(`🚫 [SECURITY] Blocked origin: ${origin}`);
+        return res.status(403).json({ error: 'Forbidden', message: 'Unauthorized origin' });
     }
 
-    // ============ API TOKEN VALIDATION (optional extra layer) ============
-    // If you set INTERNAL_API_SECRET in Vercel, frontend must send it
+    // API token validation
     if (API_SECRET) {
         const clientToken = req.headers['x-api-token'] || req.body?.apiToken;
         if (clientToken !== API_SECRET) {
-            console.error(`🚫 [SECURITY] Invalid API token from: ${origin}`);
-            return res.status(401).json({
-                error: 'Unauthorized',
-                message: 'Invalid or missing API token'
-            });
+            console.error(`🚫 [SECURITY] Invalid API token`);
+            return res.status(401).json({ error: 'Unauthorized', message: 'Invalid API token' });
         }
     }
 
-    // ============ RATE LIMIT & IP BLOCK CHECK ============
+    // Rate limiting
     const clientIP = getClientIP(req);
     const rateLimit = checkRateLimit(clientIP);
 
-    // Set rate limit headers
     res.setHeader('X-RateLimit-Limit', RATE_LIMIT_MAX_REQUESTS.toString());
     res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
     res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimit.resetIn / 1000).toString());
 
-    // If IP is blocked, return 403 Forbidden
     if (rateLimit.blocked) {
-        console.error(`🚫 [Gemini API] BLOCKED IP attempted access: ${clientIP}`);
         return res.status(403).json({
             error: 'Access denied',
-            message: 'Your IP has been temporarily blocked due to excessive requests. Please try again later.',
-            blockedFor: Math.ceil(rateLimit.resetIn / 1000) + ' seconds',
+            message: 'IP blocked due to excessive requests',
             retryAfter: Math.ceil(rateLimit.resetIn / 1000)
         });
     }
 
-    // If rate limited (not blocked yet), return 429
     if (!rateLimit.allowed) {
-        console.warn(`[Gemini API] Rate limit exceeded for IP: ${clientIP}`);
         return res.status(429).json({
             error: 'Too many requests',
-            message: 'Rate limit exceeded. Continued abuse will result in IP block.',
             retryAfter: Math.ceil(rateLimit.resetIn / 1000)
         });
     }
-    // ============ END RATE LIMIT CHECK ============
 
     if (!GEMINI_API_KEY) {
         console.error('[Gemini API] No API key configured');
         return res.status(500).json({ error: 'Gemini not configured' });
     }
 
-    const { action, message, history, systemPrompt, model = 'flash' }: GeminiRequest = req.body;
+    const { action, message, history, systemPrompt, model = 'flash', mediaData, mediaType }: GeminiRequest = req.body;
 
     if (!message) {
         return res.status(400).json({ error: 'Message is required' });
@@ -265,10 +235,33 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const modelId = MODELS[model] || MODELS.flash;
         const apiUrl = `${GEMINI_API_URL}/${modelId}:generateContent?key=${GEMINI_API_KEY}`;
 
+        // Build parts array - supports multimodal content
+        const userParts: any[] = [];
+
+        // If media is provided, add it first (Gemini expects media before text)
+        if (mediaData && mediaType) {
+            // Clean base64 data (remove data URL prefix if present)
+            let cleanBase64 = mediaData;
+            if (mediaData.includes(',')) {
+                cleanBase64 = mediaData.split(',')[1];
+            }
+
+            userParts.push({
+                inline_data: {
+                    mime_type: mediaType,
+                    data: cleanBase64
+                }
+            });
+            console.log(`[Gemini API] Multimodal request: ${mediaType}`);
+        }
+
+        // Add text message
+        userParts.push({ text: message });
+
         // Build request body
         const contents = [
             ...(history || []),
-            { role: 'user', parts: [{ text: message }] }
+            { role: 'user', parts: userParts }
         ];
 
         const requestBody: any = {

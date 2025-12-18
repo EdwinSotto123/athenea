@@ -236,7 +236,11 @@ export const EvidenceLocker: React.FC = () => {
     setProcessingStatus('AI Forensic Analysis...');
     // Only send to AI if we have mediaData or text
     const analysisData = mediaData || content;
-    const analysis = await analyzeEvidence(activeTab, analysisData);
+    // Determine MIME type for media analysis
+    const mimeTypeForAnalysis = activeTab === 'IMAGE' ? 'image/jpeg' :
+      activeTab === 'VIDEO' ? 'video/mp4' :
+        activeTab === 'AUDIO' ? 'audio/webm' : undefined;
+    const analysis = await analyzeEvidence(activeTab, analysisData, mimeTypeForAnalysis);
 
     // 2. Generate Hash locally first
     setProcessingStatus('Hashing Evidence...');

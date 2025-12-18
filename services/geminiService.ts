@@ -1,5 +1,5 @@
 import { EscapePlan, ChatMessage, EvidenceAnalysis, EvidenceType } from "../types";
-import { geminiChat, geminiAnalyze } from "../lib/api-client";
+import { geminiChat, geminiAnalyze, geminiAnalyzeMedia } from "../lib/api-client";
 
 // Note: API key is now handled securely in /api/gemini (Vercel backend)
 // Frontend no longer needs direct access to GEMINI_API_KEY
@@ -274,59 +274,110 @@ GUIDELINES:
 
 export const analyzeEvidence = async (
   type: EvidenceType,
-  data: string
+  data: string,
+  mediaType?: string // Optional MIME type for media analysis
 ): Promise<EvidenceAnalysis | null> => {
 
   try {
-    // Build prompt based on type
-    let prompt = "";
+    let response;
 
     if (type === 'TEXT') {
-      prompt = `Analyze this text evidence for legal case documentation. Look for signs of abuse, threats, control patterns.
+      // Text-only analysis
+      const prompt = `Analyze this text evidence for legal case documentation. Look for signs of abuse, threats, control patterns, manipulation, or danger.
 
 Evidence text: "${data}"
 
-Respond in JSON format:
+Respond ONLY with valid JSON:
 {
   "summary": "brief description of what the evidence shows",
   "riskLevel": 1-10,
   "category": "PHYSICAL | PSYCHOLOGICAL | FINANCIAL | SEXUAL | NEGLECT | UNCATEGORIZED",
   "keywords": ["relevant", "keywords"]
 }`;
+
+      response = await geminiAnalyze(prompt, SYSTEM_PROMPT_FORENSIC);
+
     } else if (type === 'IMAGE') {
-      // For images, provide analysis context (actual image analysis needs Pro model)
-      prompt = `A user uploaded a photo as evidence in a domestic violence case. They describe it as evidence of abuse or dangerous situation.
+      // REAL image analysis with Gemini Vision
+      const prompt = `You are a forensic analyst helping document evidence for a domestic violence case.
 
-Please provide a template analysis response for documentation purposes:
+Analyze this image carefully. Look for:
+- Signs of physical injury (bruises, cuts, swelling, marks)
+- Property damage or destruction
+- Threatening notes or messages
+- Unsafe living conditions
+- Screenshots of threatening communications
+- Any other evidence of abuse or danger
 
+Be objective and factual. If the image doesn't show clear evidence, say so honestly.
+
+Respond ONLY with valid JSON:
 {
-  "summary": "Photo evidence uploaded - requires manual review for legal documentation",
-  "riskLevel": 5,
-  "category": "PHYSICAL",
-  "keywords": ["photo", "evidence", "documentation"]
+  "summary": "detailed objective description of what you see in the image",
+  "riskLevel": 1-10,
+  "category": "PHYSICAL | PSYCHOLOGICAL | FINANCIAL | SEXUAL | NEGLECT | UNCATEGORIZED",
+  "keywords": ["relevant", "keywords"]
 }`;
+
+      const mimeType = mediaType || 'image/jpeg';
+      response = await geminiAnalyzeMedia(prompt, data, mimeType, SYSTEM_PROMPT_FORENSIC);
+
     } else if (type === 'AUDIO') {
-      prompt = `An audio recording was submitted as evidence. Provide template documentation:
+      // REAL audio analysis with Gemini
+      const prompt = `You are a forensic analyst helping document evidence for a domestic violence case.
 
+Analyze this audio recording. Listen for:
+- Verbal threats or intimidation
+- Yelling, screaming, or aggressive tone
+- Sounds of physical violence (hitting, breaking objects)
+- Crying, pleading, or distress
+- Controlling or manipulative language
+- Any other signs of abuse
+
+Be objective and factual. Transcribe relevant portions if possible.
+
+Respond ONLY with valid JSON:
 {
-  "summary": "Audio recording - may contain verbal threats or abuse",
-  "riskLevel": 5,
-  "category": "PSYCHOLOGICAL", 
-  "keywords": ["audio", "recording", "verbal"]
+  "summary": "description of what you hear in the audio, including any transcribed threats or concerning content",
+  "riskLevel": 1-10,
+  "category": "PHYSICAL | PSYCHOLOGICAL | FINANCIAL | SEXUAL | NEGLECT | UNCATEGORIZED", 
+  "keywords": ["relevant", "keywords"]
 }`;
+
+      const mimeType = mediaType || 'audio/webm';
+      response = await geminiAnalyzeMedia(prompt, data, mimeType, SYSTEM_PROMPT_FORENSIC);
+
     } else if (type === 'VIDEO') {
-      prompt = `A video was submitted as evidence. Provide template documentation:
+      // REAL video analysis with Gemini
+      const prompt = `You are a forensic analyst helping document evidence for a domestic violence case.
 
+Analyze this video. Watch and listen for:
+- Physical violence or aggressive behavior
+- Property destruction
+- Threatening gestures or body language
+- Verbal threats or abuse
+- Signs of fear or distress in victims
+- The environment and any safety concerns
+
+Be objective and factual. Describe what you see and hear.
+
+Respond ONLY with valid JSON:
 {
-  "summary": "Video evidence - may show physical violence or threats",
-  "riskLevel": 6,
-  "category": "PHYSICAL",
-  "keywords": ["video", "footage", "incident"]
+  "summary": "detailed description of what happens in the video",
+  "riskLevel": 1-10,
+  "category": "PHYSICAL | PSYCHOLOGICAL | FINANCIAL | SEXUAL | NEGLECT | UNCATEGORIZED",
+  "keywords": ["relevant", "keywords"]
 }`;
+
+      const mimeType = mediaType || 'video/mp4';
+      response = await geminiAnalyzeMedia(prompt, data, mimeType, SYSTEM_PROMPT_FORENSIC);
+
+    } else {
+      // Unknown type - fallback
+      response = { success: false, error: 'Unknown evidence type' };
     }
 
     // Call secure API route
-    const response = await geminiAnalyze(prompt, SYSTEM_PROMPT_FORENSIC);
 
     if (!response.success || !response.response) {
       console.warn('[Evidence Analysis] API call failed, using fallback');
