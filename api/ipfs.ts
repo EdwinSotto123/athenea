@@ -74,39 +74,90 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('[IPFS API] Buffer size:', buffer.length, 'bytes');
         console.log('[IPFS API] Content type:', contentType);
 
-        // Use multipart form upload for BINARY files (images, audio, etc.)
-        const FormData = (await import('form-data')).default;
-        const formData = new FormData();
+        // Determine if content is text or binary
+        const isTextContent = contentType?.startsWith('text/') || contentType === 'application/json';
 
-        // Add file as binary
-        formData.append('file', buffer, {
-            filename: filename || `evidence-${Date.now()}`,
-            contentType: contentType || 'application/octet-stream'
-        });
+        if (isTextContent) {
+            // For text content, use pinJSONToIPFS with the content directly
+            const textContent = Buffer.from(base64Data, 'base64').toString('utf-8');
 
-        // Add Pinata metadata
-        const pinataMetadata = JSON.stringify({
-            name: filename || `athena-evidence-${Date.now()}`,
-            keyvalues: {
-                type: metadata?.type || 'UNKNOWN',
-                description: (metadata?.description || '').substring(0, 100),
-                timestamp: Date.now().toString(),
-                caseId: metadata?.caseId || 'anonymous'
+            const response = await fetch(`${PINATA_API_URL}/pinning/pinJSONToIPFS`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${PINATA_JWT}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    pinataContent: {
+                        content: textContent,
+                        type: metadata?.type || 'TEXT',
+                        timestamp: Date.now()
+                    },
+                    pinataMetadata: {
+                        name: filename || `athena-evidence-${Date.now()}`
+                    },
+                    pinataOptions: {
+                        cidVersion: 1
+                    }
+                })
+            });
+
+            const responseText = await response.text();
+            console.log('[IPFS API] Pinata response status:', response.status);
+
+            if (!response.ok) {
+                console.error('[IPFS API] Pinata error:', responseText);
+                return res.status(response.status).json({
+                    success: false,
+                    error: 'Pinata upload failed',
+                    details: responseText
+                });
             }
-        });
-        formData.append('pinataMetadata', pinataMetadata);
 
-        // Pinata options
-        formData.append('pinataOptions', JSON.stringify({ cidVersion: 1 }));
+            const result = JSON.parse(responseText);
+            const cid = result.IpfsHash;
 
-        // Upload to Pinata as BINARY FILE
-        const response = await fetch(`${PINATA_API_URL}/pinning/pinFileToIPFS`, {
+            console.log('[IPFS API] ✅ Text content uploaded:', cid);
+
+            return res.status(200).json({
+                success: true,
+                cid,
+                ipfsUrl: `ipfs://${cid}`,
+                gatewayUrl: `${PUBLIC_GATEWAY}/${cid}`,
+                size: result.PinSize || textContent.length,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+        // For BINARY files (images, audio, video), store as base64 JSON wrapper
+        // This is a workaround for FormData issues in Vercel serverless
+        const response = await fetch(`${PINATA_API_URL}/pinning/pinJSONToIPFS`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${PINATA_JWT}`,
-                ...formData.getHeaders()
+                'Content-Type': 'application/json'
             },
-            body: formData as any
+            body: JSON.stringify({
+                pinataContent: {
+                    data: base64Data,
+                    mimeType: contentType,
+                    filename: filename || `evidence-${Date.now()}`,
+                    type: metadata?.type || 'MEDIA',
+                    description: metadata?.description || '',
+                    timestamp: Date.now()
+                },
+                pinataMetadata: {
+                    name: filename || `athena-evidence-${Date.now()}`,
+                    keyvalues: {
+                        type: metadata?.type || 'UNKNOWN',
+                        contentType: contentType,
+                        caseId: metadata?.caseId || 'anonymous'
+                    }
+                },
+                pinataOptions: {
+                    cidVersion: 1
+                }
+            })
         });
 
         const responseText = await response.text();
