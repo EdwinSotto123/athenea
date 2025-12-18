@@ -22,7 +22,7 @@ const FRAXTAL_TESTNET = {
     chainName: 'Fraxtal Testnet',
     nativeCurrency: { name: 'Frax Ether', symbol: 'frxETH', decimals: 18 },
     rpcUrls: ['https://rpc.testnet.frax.com'],
-    blockExplorerUrls: ['https://holesky.fraxscan.com']
+    blockExplorerUrls: ['https://fraxscan.com']
 };
 
 export default function PublicDonationPage() {
@@ -260,10 +260,10 @@ export default function PublicDonationPage() {
                                             {caseInfo.displayName}
                                         </h3>
                                         <span className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${caseInfo.urgencyLevel === 'CRITICAL'
-                                                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                                                : caseInfo.urgencyLevel === 'HIGH'
-                                                    ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
-                                                    : 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                                            : caseInfo.urgencyLevel === 'HIGH'
+                                                ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                                                : 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
                                             }`}>
                                             <Sparkles className="w-3 h-3" />
                                             {caseInfo.urgencyLevel === 'CRITICAL' ? 'Crítico' :
@@ -343,7 +343,7 @@ export default function PublicDonationPage() {
                                         )}
                                     </button>
                                     <a
-                                        href={`https://holesky.fraxscan.com/address/${caseInfo.walletAddress}`}
+                                        href={`https://fraxscan.com/address/${caseInfo.walletAddress}`}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="p-2 hover:bg-white/10 rounded-lg transition"
@@ -447,8 +447,8 @@ export default function PublicDonationPage() {
                                         key={amt}
                                         onClick={() => setDonationAmount(amt)}
                                         className={`flex-1 py-3 rounded-xl text-sm font-bold transition ${donationAmount === amt
-                                                ? 'bg-violet-600 text-white'
-                                                : 'bg-white/5 text-neutral-400 hover:bg-white/10'
+                                            ? 'bg-violet-600 text-white'
+                                            : 'bg-white/5 text-neutral-400 hover:bg-white/10'
                                             }`}
                                     >
                                         {amt}

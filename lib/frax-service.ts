@@ -50,7 +50,7 @@ const FRAXTAL_TESTNET: NetworkConfig = {
     sFraxAddress: '0x0000000000000000000000000000000000000000', // Will deploy our own pool
     fraxAddress: '0x0000000000000000000000000000000000000000',  // Native frxETH
     usdcAddress: '0x0000000000000000000000000000000000000000',
-    explorerUrl: 'https://holesky.fraxscan.com'
+    explorerUrl: 'https://fraxscan.com'
 };
 
 // Sepolia Testnet (Backup)

@@ -200,7 +200,7 @@ ${txHash}
 
 Verification Links:
 • IPFS: ${PUBLIC_GATEWAY}/${cid}
-• Blockchain: https://holesky.fraxscan.com/tx/${txHash}
+• Blockchain: https://fraxscan.com/tx/${txHash}
 
 This evidence was securely stored on the decentralized IPFS network
 and its hash was recorded on the Fraxtal blockchain, providing

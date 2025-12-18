@@ -13,7 +13,7 @@ const ATHENA_POOL_ADDRESS = '0x4Bca7ebC3Cba0ea5Ada962E319BfB8353De81605';
 const FRAXTAL_TESTNET = {
     rpcUrl: 'https://rpc.testnet.frax.com',
     chainId: 2523,
-    explorerUrl: 'https://holesky.fraxscan.com'
+    explorerUrl: 'https://fraxscan.com'
 };
 
 // ABI (simplified for frontend use)

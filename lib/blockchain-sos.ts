@@ -121,7 +121,7 @@ export class BlockchainSOSService {
             txHashes.push(receipt!.hash);
 
             logs.push(`✅ TX confirmed! Block: ${receipt!.blockNumber}`);
-            logs.push(`🔗 https://holesky.fraxscan.com/tx/${receipt!.hash}`);
+            logs.push(`🔗 https://fraxscan.com/tx/${receipt!.hash}`);
 
             // Step 6: Log to ATP Dashboard
             try {

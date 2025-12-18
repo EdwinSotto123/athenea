@@ -1,172 +1,290 @@
-# 💜 Athena - Freedom Protocol
+# 🦉 Athena - AI-Powered Financial Freedom Agent
 
-> **AI Agent that protects domestic violence victims through financial sovereignty and immutable evidence.**
+[![IQAI Agent](https://img.shields.io/badge/IQAI-Registered_Agent-purple)](https://app.iqai.com/agents/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4)
+[![Fraxtal](https://img.shields.io/badge/Blockchain-Fraxtal_L2-blue)](https://fraxscan.com)
+[![ADK-TS](https://img.shields.io/badge/Standard-IQAI_ADK_TS-green)](https://github.com/iqai/adk-ts)
 
-[![IQAI Agent](https://img.shields.io/badge/IQAI-Agent%20Tokenized-purple)](https://app.iqai.com/agents/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4)
-[![Fraxtal](https://img.shields.io/badge/Network-Fraxtal%20L2-blue)](https://frax.com)
-[![ADK-TS](https://img.shields.io/badge/Framework-ADK--TS-green)](https://github.com/iqai/adk)
+**Athena** is an autonomous AI agent that helps women in dangerous situations achieve financial independence and escape safely. Built on Fraxtal L2, it combines custodial blockchain wallets, immutable IPFS evidence storage, and an empathetic AI companion that **thinks before acting**.
 
----
-
-## 🌐 Live Links
+## 🔗 Live Links
 
 | Resource | Link |
 |----------|------|
-| 🚀 **App (Demo)** | [athenea-nine.vercel.app](https://athenea-nine.vercel.app/) |
-| 🤖 **Agent Dashboard** | [IQAI ATP Dashboard](https://app.iqai.com/agents/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4) |
-| 💜 **$ATHENA Token** | `0xee30b1d751c32cfed78826ed6377927d7ff85892` |
-| 📊 **Agent Contract** | `0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4` |
-| 💧 **Liquidity Pool** | `0x805c15c2d7e13c32bde69ef3982bc3f1e835ba24` |
-
+| 🌐 **Live App** | [athenea-nine.vercel.app](https://athenea-nine.vercel.app) |
+| 🤖 **Agent Dashboard** | [IQAI ATP Dashboard](https://app.iqai.com/pending/0xee30B1d751c32CfED78826Ed6377927D7fF85892/) |
+| 🌐 **Landing Page** | [athenea-landing.vercel.app](https://athenea-landing.vercel.app) |
+| 💜 **$ATHENA Token** | [0xee30b1d751c32cfed78826ed6377927d7ff85892](https://fraxscan.com/address/0xee30b1d751c32cfed78826ed6377927d7ff85892) |
+| 🌐 **Donation Page** | [https://athenea-nine.vercel.app/donate](https://athenea-nine.vercel.app/donate) |
+| 📜 **Agent Contract** | [0xce4f65d10b16ff7ab32581d3f66d570Sac76d03b4](https://fraxscan.com/address/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4) |
 ---
 
 ## 🎯 The Problem
 
-**99% of domestic violence victims suffer financial abuse.** Without their own money or immutable evidence (often deleted by abusers), escape is logistically impossible.
+Every day, **thousands of women** are trapped in abusive relationships where they face:
 
-## 💡 The Solution
+| Challenge | Reality |
+|-----------|---------|
+| **💰 Financial Control** | Abusers control bank accounts, credit cards, and income. Victims have no savings to escape. |
+| **📱 Evidence Destruction** | Photos of injuries, threatening messages, recordings - abusers delete them to eliminate proof. |
+| **🏃 No Exit Strategy** | Without a plan, money, and documentation, leaving becomes nearly impossible. |
+| **🔍 Digital Tracking** | Abusers monitor phones, apps, and browser history. Privacy is non-existent. |
+| **😢 Isolation** | Cut off from family, friends, and support networks. Nowhere to turn. |
 
-A stealth AI agent disguised as a calculator that provides:
+**Statistics speak:**
+- 1 in 3 women worldwide experience physical or sexual violence
+- Financial abuse occurs in 99% of domestic violence cases
+- Victims attempt to leave an average of 7 times before succeeding
+- The most dangerous time is the 48 hours after leaving
 
-| Feature | Description |
-|---------|-------------|
-| 🔐 **Freedom Vault** | Secret crypto savings account (frxETH on Fraxtal) |
-| 📁 **Evidence Locker** | Photos/audio/text stored on IPFS with blockchain hashes |
-| 🆘 **Panic Button (SOS)** | One-tap emergency liquidation to safe contact |
-| 🤖 **AI Companion** | Empathetic planning assistant powered by Gemini |
+---
+
+## 💡 The Solution: Athena
+
+Athena is an **AI agent** that operates autonomously to protect women. It's not just an app - it's a thinking companion that:
+
+### 🧠 **Thinks Before Acting**
+Unlike simple automation, Athena uses **Google Gemini 2.5 Flash** to:
+- Analyze each situation contextually
+- Provide personalized escape recommendations
+- Understand emotional states and respond with empathy
+- Calculate realistic financial freedom goals
+
+### 🔐 **Operates in Total Stealth**
+- **Calculator Disguise**: App appears as a simple calculator. Secret code `9÷11=` reveals true interface
+- **Quick Escape**: Press ESC or tap screen to instantly hide, showing a news website
+- **No Traces**: Minimal device footprint, encrypted storage, wipeable data
+
+### 💼 **Manages Crypto Wallets Autonomously**
+- Creates custodial wallets **automatically** on registration
+- Users need **zero crypto knowledge** - it just works
+- Private keys are AES-256 encrypted and stored off-device
+- Emergency SOS transfers all funds to trusted contact in seconds
+
+### 📊 **Logs Everything Transparently**
+Every action is logged to the **IQAI ATP Dashboard** with pseudonymized, humanized messages:
+```
+💜 ¡Luna AB. ha iniciado su camino hacia la libertad!
+🔐 Esperanza MZ. aseguró evidencia (AUDIO) en blockchain
+🆘 EMERGENCIA: Victoria LP. activó el protocolo SOS
+```
 
 ---
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    ATHENA AGENT (ADK-TS)                │
-├──────────────┬──────────────┬───────────────────────────┤
-│   🧠 Brain   │   💪 Muscle  │      🔗 Blockchain        │
-│  Gemini 2.5  │ AthenaAgent  │    Fraxtal L2 Testnet     │
-│  Flash Lite  │   TypeScript │    Custodial Wallets      │
-└──────────────┴──────────────┴───────────────────────────┘
-        │               │                   │
-        ▼               ▼                   ▼
-   Risk Analysis   Evidence Hash      SOS Transfer
-   Escape Planning IPFS Storage      ATP Logs (IQAI)
+┌─────────────────────────────────────────────────────────────────────┐
+│                         ATHENA AGENT                                │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│  ┌──────────────┐    ┌──────────────┐    ┌──────────────────────┐  │
+│  │   🧠 BRAIN   │    │  💪 MUSCLE   │    │   📊 ATP LOGGING   │  │
+│  │   Gemini AI  │    │  Blockchain  │    │    IQAI Dashboard    │  │
+│  │  2.5 Flash   │───▶│   Fraxtal    │───▶│   Humanized Logs    │  │
+│  │   (Thinks)   │    │   + IPFS     │    │  (Transparency)     │  │
+│  └──────────────┘    └──────────────┘    └──────────────────────┘  │
+│         │                   │                      │                │
+│         ▼                   ▼                      ▼                │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │                    SECURE API ROUTES                         │  │
+│  │  /api/gemini  │  /api/ipfs  │  /api/atp-log  │  /api/wallet  │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Core Components
+---
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| Agent Core | `lib/athena-agent.ts` | ADK-TS pattern implementation |
-| Blockchain SOS | `lib/blockchain-sos.ts` | Real frxETH transfers on testnet |
-| Custodial Wallets | `lib/wallet-custody.ts` | Auto-generated encrypted wallets |
-| Evidence Export | `lib/evidence-export.ts` | User-friendly certificates |
-| ATP Logs | `lib/atp-logs.ts` | IQAI dashboard humanized logs |
+## �️ How Athena Prevents Fraud & Misuse
+
+A critical concern for any donation-based system is preventing fraud. Athena implements multiple layers of protection:
+
+### 1. **AI-Powered Verification**
+The Gemini AI analyzes evidence before storing:
+- Examines photo metadata for authenticity
+- Assesses audio for signs of distress
+- Cross-references user stories for consistency
+- Flags suspicious patterns for review
+
+### 2. **Blockchain Transparency**
+Every transaction is recorded on **Fraxtal L2**:
+- All wallet addresses are public and auditable
+- Fund movements can be traced by anyone
+- Donation-to-victim flow is transparent
+- Smart contract ensures proper fund allocation
+
+### 3. **ATP Logging (Agent Transparency Protocol)**
+All agent actions are logged to IQAI Dashboard:
+- Actions are timestamped and immutable
+- Pseudonymized for privacy but verifiable
+- Community can audit agent behavior
+- Anomalies trigger automatic alerts
+
+### 4. **Evidence Immutability**
+Evidence is stored on **IPFS** with blockchain timestamps:
+- Once uploaded, evidence cannot be modified
+- CID (Content ID) is recorded on-chain
+- Court-admissible with cryptographic proof
+- Prevents both deletion AND fabrication
+
+---
+
+## 🔐 Key Features
+
+### 1. Freedom Vault (Custodial Wallet)
+| Feature | Description |
+|---------|-------------|
+| **Auto-creation** | Wallet generated instantly on registration |
+| **AES-256 Encryption** | Private keys never stored in plain text |
+| **Zero Knowledge Required** | Users just see dollar amounts, not crypto complexity |
+| **Hidden Interface** | Appears as calculator until secret code entered |
+
+### 2. AI Escape Planner
+| Feature | Description |
+|---------|-------------|
+| **Empathetic Chat** | Gemini AI trained for crisis support and emotional intelligence |
+| **Personalized Plans** | Based on location, children, risk level, available resources |
+| **Legal Resources** | Country-specific hotlines, shelters, legal aid |
+| **Freedom Goal** | AI calculates exact funds needed for safe escape |
+
+### 3. Evidence Locker
+| Feature | Description |
+|---------|-------------|
+| **IPFS Storage** | Permanent, decentralized, censorship-resistant |
+| **Blockchain Timestamps** | Immutable proof of when evidence was captured |
+| **Multiple Formats** | Photos, audio recordings, video, text notes |
+| **AI Analysis** | Automatic categorization and risk assessment |
+
+### 4. Emergency SOS Protocol
+| Feature | Description |
+|---------|-------------|
+| **One-Button Trigger** | Hold button for 3 seconds to activate |
+| **Instant Fund Transfer** | All crypto sent to pre-registered trusted contact |
+| **Data Wipe** | Local evidence and wallet data deleted immediately |
+| **ATP Logged** | Emergency creates audit trail for accountability |
+
+### 5. Stealth Mode
+| Feature | Description |
+|---------|-------------|
+| **Calculator Disguise** | App looks and works like a calculator |
+| **Quick Escape** | ESC key or screen tap shows news website |
+| **No App Icon** | Can be launched from widget or shortcut only |
+| **Encrypted Storage** | Even if found, data is unreadable without auth |
+
+---
+
+## ⌨️ Shortcuts & Commands
+
+| Shortcut | Action |
+|----------|--------|
+| `%=` | Toggle Legend|
+| `9÷11=` | Flash Balance|
+| `7 x 7 =` | Pool Status|
+| `1999 =` | Unlock Vault|
+| `0 ÷ 0 =` | TRIGGER SOS|
+| Triple tap | Toggle stealth mode |
+| Hold SOS 3s | Activate emergency protocol |
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technologies |
-|-------|-------------|
-| **Frontend** | React, Vite, Tailwind CSS, Lucide |
-| **AI** | Google Vertex AI, Gemini 2.5, IQAI ADK-TS |
-| **Blockchain** | Fraxtal L2 (Testnet), Ethers.js |
-| **Storage** | Firebase (Auth/Firestore), IPFS (Pinata) |
-| **Agent Platform** | IQAI Agent Tokenization Platform |
-
----
-
-## 🚀 Quick Start
-
-```bash
-# Clone
-git clone https://github.com/your-repo/athenea.git
-cd athenea
-
-# Install
-npm install
-
-# Configure (copy and edit)
-cp .env.local.example .env.local
-# Add your API keys (see .env.firebase for Firebase config)
-
-# Run
-npm run dev
-```
-
-### Required Environment Variables
-
-```env
-# Firebase (see .env.firebase for values)
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-
-# Gemini AI
-VITE_GEMINI_API_KEY=your-gemini-api-key
-
-# IPFS (Pinata)
-VITE_PINATA_JWT=your-pinata-jwt
-
-# Wallet Encryption
-VITE_WALLET_ENCRYPTION_KEY=your-secret-key
-
-# IQAI ATP (for agent logs)
-VITE_IQAI_API_KEY=your-iqai-api-key
-```
-
----
-
-## 🔐 Security Features
-
-| Feature | Implementation |
-|---------|---------------|
-| **Wallet Custody** | Auto-generated on registration, AES encrypted in Firestore |
-| **Evidence Hashing** | SHA-256 + IPFS CID verification |
-| **Stealth Mode** | Calculator disguise, quick escape button |
-| **SOS Protocol** | Real blockchain transfer to safe destination |
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| **Frontend** | React 19, TypeScript, Vite | Fast, modern UI |
+| **AI Brain** | Google Gemini 2.5 Flash | Reasoning & empathy |
+| **Blockchain** | Fraxtal L2, Ethers.js v6 | Fast, cheap transactions |
+| **Evidence Storage** | IPFS via Pinata | Permanent, decentralized |
+| **User Data** | Firebase Firestore | Real-time sync |
+| **Auth** | Firebase Authentication | Secure login |
+| **Hosting** | Vercel + Serverless Functions | Global, secure hosting |
+| **Agent Standard** | IQAI ADK-TS | Agent logging & transparency |
 
 ---
 
 ## 📊 IQAI ATP Integration
 
-Athena is a **tokenized agent** on the IQAI platform. Every significant action generates an on-chain log:
+Athena logs all critical actions to the IQAI ATP Dashboard with humanized, Spanish-language messages:
 
-```
-💜 ¡Luna AB. ha iniciado su camino hacia la libertad!
-🔐 Aurora CD. aseguró evidencia (FOTO) en blockchain
-✨ ¡Esperanza EF. tiene su Freedom Goal! Meta: $1,100
-🆘 EMERGENCIA: Valentía GH. activó el protocolo SOS
-```
+| Event | Example Log |
+|-------|-------------|
+| User Registration | 💜 ¡Luna AB. ha iniciado su camino hacia la libertad! |
+| Plan Completed | ✨ ¡Aurora FD. tiene su Freedom Goal! Meta: $2350 |
+| Evidence Stored | 🔐 Esperanza MZ. aseguró evidencia (AUDIO) en blockchain |
+| SOS Triggered | 🆘 EMERGENCIA: Victoria LP. activó el protocolo SOS |
+| Donation Received | 💜 ¡Donación de $50.00 recibida! Gracias, ángeles donadores |
 
-**View logs:** [IQAI Dashboard](https://app.iqai.com/agents/0xce4f65d10b16ff7ab32581d3f66d570ac76d03b4/logs)
+> **Privacy**: All logs use pseudonyms (Luna, Aurora, Esperanza, etc.) - never real names. Names are randomly assigned and not linked to user identity.
 
 ---
 
-## 🎯 Roadmap
+## 🔒 Security Architecture
 
-- [x] MVP with Vault, Locker, AI Planner
-- [x] Custodial wallet system
-- [x] IQAI ATP integration
-- [x] Real blockchain SOS on testnet
-- [ ] Angels Pool for anonymous donations
-- [ ] Dynamic disguise (Calculator, Recipes, Period Tracker)
-- [ ] Mainnet deployment
+| Layer | Protection |
+|-------|------------|
+| **API Keys** | Stored in Vercel environment variables, never exposed to frontend |
+| **Wallet Private Keys** | AES-256 encrypted with user-specific salt before Firestore storage |
+| **Evidence Files** | Hashed on IPFS, only CID stored on blockchain |
+| **User Sessions** | Firebase Auth with secure token refresh |
+| **Data in Transit** | HTTPS everywhere, no plain HTTP endpoints |
+| **Data at Rest** | Firestore encryption + client-side encryption |
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Completed
+- [x] Custodial wallet creation on registration
+- [x] Evidence upload to IPFS with blockchain timestamping
+- [x] AI escape planning with Gemini 2.5 Flash
+- [x] Emergency SOS with real blockchain transfers
+- [x] IQAI ATP Dashboard integration
+- [x] Secure API routes (no exposed keys)
+- [x] Stealth calculator mode
+- [x] Public donation page
+
+### 🔜 Coming Soon
+- [ ] Multi-language support (English, Portuguese)
+- [ ] Mobile app (React Native)
+- [ ] Integration with shelter networks
+- [ ] Legal document generation
+- [ ] Video call with counselors
 
 ---
 
 ## 💜 Impact
 
-> *Technology that saves lives.*
+Athena represents a **new paradigm** in protection technology. 
 
-Athena empowers victims with:
-- **Financial invisibility** from abusers
-- **Legally valid evidence** stored forever
-- **One-tap escape** when danger escalates
+By combining:
+- **AI empathy** that understands context
+- **Blockchain security** that cannot be compromised
+- **Stealth design** that protects users
+- **Transparent logging** that prevents abuse
+
+We provide women with the tools they need to escape dangerous situations **safely** and with **financial independence**.
 
 ---
 
-**Built with 💜 for IQAI Hackathon**
+## 🤝 How to Help
 
-*Protecting those who need it most.*
+1. **Donate**: Send frxETH or USDC to victim wallets via our donation page
+2. **Share**: Spread awareness about Athena in your community
+3. **Contribute**: Help us build new features (PRs welcome!)
+4. **Hold $ATHENA**: Support the agent's mission
+
+---
+
+## 📄 License
+
+MIT License
+
+---
+
+<p align="center">
+  <b>"Financial freedom is the first step to true freedom."</b>
+</p>
+
+<p align="center">
+  Built with 💜 for survivors everywhere
+</p>
